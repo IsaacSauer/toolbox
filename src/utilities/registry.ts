@@ -14,6 +14,12 @@ export interface Utility {
   description: string
   /** Emoji or short string shown in the sidebar. */
   icon: string
+  /**
+   * When true, the utility can be used without logging in — saving
+   * (configs, saved items) still requires an account. Defaults to false:
+   * unauthenticated visitors are redirected to the login page.
+   */
+  availableWithoutAccount?: boolean
   component: ComponentType | LazyExoticComponent<ComponentType>
 }
 

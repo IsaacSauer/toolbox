@@ -10,9 +10,11 @@ import { getUtility } from './utilities/registry'
 import './utilities' // registers all utilities
 
 function UtilityPage() {
+  const { user } = useAuth()
   const { utilityId } = useParams()
   const utility = utilityId ? getUtility(utilityId) : undefined
   if (!utility) return <Navigate to="/" replace />
+  if (!user && !utility.availableWithoutAccount) return <Navigate to="/login" replace />
   const Component = utility.component
   return (
     <Suspense fallback={<p className="animate-pulse text-slate-400">Loading tool…</p>}>
@@ -32,12 +34,9 @@ function AppRoutes() {
     )
   }
 
-  if (!user) {
-    return <AuthPage />
-  }
-
   return (
     <Routes>
+      <Route path="/login" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/tools/:utilityId" element={<UtilityPage />} />

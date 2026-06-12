@@ -7,8 +7,10 @@ import type {
   ErrorCorrectionLevel,
   FileExtension,
 } from 'qr-code-styling'
+import { Link } from 'react-router-dom'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
 import { useAuth } from '../../auth/auth-context'
+import { SaveStatus } from '../../components/SaveStatus'
 import { supabase } from '../../lib/supabase'
 
 /**
@@ -328,16 +330,11 @@ export function QRCodeGenerator() {
     <div className="max-w-5xl animate-fade-up">
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl font-bold tracking-tight">QR Code Generator</h1>
-        <span className="flex items-center gap-1.5 text-xs text-slate-500">
-          <span
-            className={`size-1.5 rounded-full ${saving ? 'animate-pulse bg-amber-400' : 'bg-emerald-400'}`}
-          />
-          {saving ? 'Saving…' : 'Settings saved'}
-        </span>
+        <SaveStatus saving={saving} />
       </div>
       <p className="mt-2 text-slate-400">
-        Create styled QR codes for links, WiFi, contacts and more. Your design preferences are
-        remembered on your account.
+        Create styled QR codes for links, WiFi, contacts and more. With an account, your design
+        preferences are remembered.
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_minmax(280px,360px)]">
@@ -744,56 +741,70 @@ export function QRCodeGenerator() {
               Saved codes
             </p>
 
-            <div className="mt-3 flex gap-2">
-              <input
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-                placeholder="Name this QR code…"
-                className={inputClass}
-              />
-              <button
-                onClick={saveCreation}
-                disabled={!payload || savingQr}
-                className="shrink-0 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/20 disabled:opacity-40"
-              >
-                {savingQr ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-            {saveError && <p className="mt-2 text-xs text-rose-400">{saveError}</p>}
-
-            {saved.length === 0 ? (
+            {!user ? (
               <p className="mt-3 text-xs text-slate-500">
-                Nothing saved yet. Save a creation to reload it later on any device.
+                <Link
+                  to="/login"
+                  className="text-indigo-300 transition-colors hover:text-indigo-200"
+                >
+                  Sign in
+                </Link>{' '}
+                to save creations and reload them later on any device.
               </p>
             ) : (
-              <ul className="mt-3 space-y-2">
-                {saved.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              <>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    placeholder="Name this QR code…"
+                    className={inputClass}
+                  />
+                  <button
+                    onClick={saveCreation}
+                    disabled={!payload || savingQr}
+                    className="shrink-0 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/20 disabled:opacity-40"
                   >
-                    <button
-                      onClick={() => loadCreation(item)}
-                      className="min-w-0 flex-1 text-left"
-                      title="Load this QR code"
-                    >
-                      <span className="block truncate text-sm text-white">{item.name}</span>
-                      <span className="block text-[11px] text-slate-500">
-                        {CONTENT_TYPES.find((t) => t.id === item.content_type)?.label ??
-                          item.content_type}{' '}
-                        · {new Date(item.created_at).toLocaleDateString()}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => deleteCreation(item.id)}
-                      className="shrink-0 rounded-lg px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-rose-500/20 hover:text-rose-300"
-                      title="Delete"
-                    >
-                      ✕
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                    {savingQr ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+                {saveError && <p className="mt-2 text-xs text-rose-400">{saveError}</p>}
+
+                {saved.length === 0 ? (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Nothing saved yet. Save a creation to reload it later on any device.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {saved.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                      >
+                        <button
+                          onClick={() => loadCreation(item)}
+                          className="min-w-0 flex-1 text-left"
+                          title="Load this QR code"
+                        >
+                          <span className="block truncate text-sm text-white">{item.name}</span>
+                          <span className="block text-[11px] text-slate-500">
+                            {CONTENT_TYPES.find((t) => t.id === item.content_type)?.label ??
+                              item.content_type}{' '}
+                            · {new Date(item.created_at).toLocaleDateString()}
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => deleteCreation(item.id)}
+                          className="shrink-0 rounded-lg px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-rose-500/20 hover:text-rose-300"
+                          title="Delete"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
             )}
           </div>
         </div>

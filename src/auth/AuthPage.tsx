@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from './auth-context'
 
 type Mode = 'login' | 'register'
@@ -161,6 +162,15 @@ export function AuthPage() {
               </button>
             </>
           )}
+        </p>
+
+        <p className="mt-3 text-center text-sm">
+          <Link
+            to="/"
+            className="text-slate-500 transition-colors hover:text-slate-300"
+          >
+            Continue without an account →
+          </Link>
         </p>
       </div>
     </div>

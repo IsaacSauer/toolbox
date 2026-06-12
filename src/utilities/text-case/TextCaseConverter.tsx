@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
 
 /**
@@ -49,15 +50,11 @@ export function TextCaseConverter() {
     <div className="max-w-2xl animate-fade-up">
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Text Case Converter</h1>
-        <span className="flex items-center gap-1.5 text-xs text-slate-500">
-          <span
-            className={`size-1.5 rounded-full ${saving ? 'animate-pulse bg-amber-400' : 'bg-emerald-400'}`}
-          />
-          {saving ? 'Saving…' : 'Settings saved'}
-        </span>
+        <SaveStatus saving={saving} />
       </div>
       <p className="mt-2 text-slate-400">
-        Your selected case and options are remembered on your account.
+        Convert text between case styles. With an account, your selected case and options are
+        remembered.
       </p>
 
       <div className="mt-8 flex flex-wrap gap-2">
