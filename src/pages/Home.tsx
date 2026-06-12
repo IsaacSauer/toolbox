@@ -5,22 +5,37 @@ export function Home() {
   const utilities = getUtilities()
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Welcome to your Toolbox</h1>
-      <p className="mt-1 text-slate-400">
+    <div className="animate-fade-up">
+      <h1 className="text-3xl font-bold tracking-tight">
+        Welcome to your <span className="text-gradient">Toolbox</span>
+      </h1>
+      <p className="mt-2 max-w-xl text-slate-400">
         Pick a utility below. Your settings are saved to your account automatically.
       </p>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {utilities.map((u) => (
+      <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {utilities.map((u, i) => (
           <Link
             key={u.id}
             to={`/tools/${u.id}`}
-            className="rounded-xl border border-slate-800 bg-slate-900 p-5 transition hover:border-indigo-500/50 hover:bg-slate-800/80"
+            style={{ animationDelay: `${i * 60}ms` }}
+            className="glass group relative animate-fade-up overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-400/40 hover:shadow-xl hover:shadow-indigo-500/10"
           >
-            <span className="text-3xl">{u.icon}</span>
-            <h2 className="mt-3 font-semibold text-white">{u.name}</h2>
-            <p className="mt-1 text-sm text-slate-400">{u.description}</p>
+            {/* Accent glow that fades in on hover */}
+            <div className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-indigo-500/20 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
+
+            <span className="grid size-12 place-items-center rounded-xl bg-white/5 text-2xl ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
+              {u.icon}
+            </span>
+            <h2 className="mt-4 font-semibold tracking-tight text-white">{u.name}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-400">{u.description}</p>
+
+            <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-indigo-300 opacity-0 transition-all duration-300 group-hover:opacity-100">
+              Open tool
+              <svg className="size-3 transition-transform duration-300 group-hover:translate-x-0.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 8h10m0 0L9 4m4 4l-4 4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
           </Link>
         ))}
       </div>

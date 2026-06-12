@@ -4,6 +4,9 @@ import { useAuth } from './auth-context'
 
 type Mode = 'login' | 'register'
 
+const inputClass =
+  'w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:bg-white/[0.07] focus:outline-none focus:ring-2 focus:ring-indigo-500/20'
+
 export function AuthPage() {
   const { signIn, signUp } = useAuth()
   const [mode, setMode] = useState<Mode>('login')
@@ -46,22 +49,23 @@ export function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
-      <div className="w-full max-w-sm">
+    <div className="ambient flex min-h-screen items-center justify-center bg-surface px-4">
+      <div className="relative z-10 w-full max-w-sm animate-fade-up">
         <div className="mb-8 text-center">
-          <span className="text-4xl">🧰</span>
-          <h1 className="mt-2 text-2xl font-bold text-white">Toolbox</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-cyan-400 text-3xl shadow-lg shadow-indigo-500/30">
+            🧰
+          </span>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-white">
+            <span className="text-gradient">Toolbox</span>
+          </h1>
+          <p className="mt-1.5 text-sm text-slate-400">
             {mode === 'login' ? 'Log in to your account' : 'Create a new account'}
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-xl"
-        >
+        <form onSubmit={handleSubmit} className="glass space-y-4 rounded-2xl p-6 shadow-2xl">
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-300">
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-300">
               Email
             </label>
             <input
@@ -71,13 +75,13 @@ export function AuthPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+              className={inputClass}
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-300">
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-300">
               Password
             </label>
             <input
@@ -88,7 +92,7 @@ export function AuthPage() {
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+              className={inputClass}
               placeholder="••••••••"
             />
           </div>
@@ -97,7 +101,7 @@ export function AuthPage() {
             <div>
               <label
                 htmlFor="confirm-password"
-                className="mb-1 block text-sm font-medium text-slate-300"
+                className="mb-1.5 block text-sm font-medium text-slate-300"
               >
                 Confirm password
               </label>
@@ -109,17 +113,19 @@ export function AuthPage() {
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                className={inputClass}
                 placeholder="••••••••"
               />
             </div>
           )}
 
           {error && (
-            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
+            <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
+              {error}
+            </p>
           )}
           {notice && (
-            <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
+            <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2.5 text-sm text-emerald-300">
               {notice}
             </p>
           )}
@@ -127,19 +133,19 @@ export function AuthPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100"
           >
             {submitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Register'}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-slate-400">
+        <p className="mt-5 text-center text-sm text-slate-400">
           {mode === 'login' ? (
             <>
               No account yet?{' '}
               <button
                 onClick={() => switchMode('register')}
-                className="font-medium text-indigo-400 hover:text-indigo-300"
+                className="font-medium text-indigo-300 transition-colors hover:text-indigo-200"
               >
                 Register
               </button>
@@ -149,7 +155,7 @@ export function AuthPage() {
               Already have an account?{' '}
               <button
                 onClick={() => switchMode('login')}
-                className="font-medium text-indigo-400 hover:text-indigo-300"
+                className="font-medium text-indigo-300 transition-colors hover:text-indigo-200"
               >
                 Log in
               </button>

@@ -42,28 +42,33 @@ export function TextCaseConverter() {
   const [text, setText] = useState('')
 
   if (loading) {
-    return <p className="text-slate-400">Loading your settings…</p>
+    return <p className="animate-pulse text-slate-400">Loading your settings…</p>
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold">Text Case Converter</h1>
-        <span className="text-xs text-slate-500">{saving ? 'Saving…' : 'Settings saved'}</span>
+        <h1 className="text-3xl font-bold tracking-tight">Text Case Converter</h1>
+        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+          <span
+            className={`size-1.5 rounded-full ${saving ? 'animate-pulse bg-amber-400' : 'bg-emerald-400'}`}
+          />
+          {saving ? 'Saving…' : 'Settings saved'}
+        </span>
       </div>
-      <p className="mt-1 text-slate-400">
+      <p className="mt-2 text-slate-400">
         Your selected case and options are remembered on your account.
       </p>
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <div className="mt-8 flex flex-wrap gap-2">
         {CASE_MODES.map((m) => (
           <button
             key={m.id}
             onClick={() => setConfig({ mode: m.id })}
-            className={`rounded-lg px-3 py-1.5 text-sm transition ${
+            className={`rounded-xl px-3.5 py-1.5 font-mono text-sm transition-all duration-200 ${
               config.mode === m.id
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25'
+                : 'border border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10 hover:text-white'
             }`}
           >
             {m.label}
@@ -71,12 +76,12 @@ export function TextCaseConverter() {
         ))}
       </div>
 
-      <label className="mt-4 flex items-center gap-2 text-sm text-slate-300">
+      <label className="mt-5 flex w-fit cursor-pointer items-center gap-2.5 text-sm text-slate-300">
         <input
           type="checkbox"
           checked={config.autoTrim}
           onChange={(e) => setConfig({ autoTrim: e.target.checked })}
-          className="accent-indigo-600"
+          className="size-4 accent-indigo-500"
         />
         Trim whitespace automatically
       </label>
@@ -86,12 +91,14 @@ export function TextCaseConverter() {
         onChange={(e) => setText(e.target.value)}
         rows={5}
         placeholder="Type or paste text here…"
-        className="mt-6 w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+        className="glass mt-8 w-full resize-y rounded-2xl p-4 text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
       />
 
-      <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Result</p>
-        <p className="mt-1 whitespace-pre-wrap break-words text-white">
+      <div className="glass mt-4 rounded-2xl p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+          Result
+        </p>
+        <p className="mt-2 whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-white">
           {text ? convert(text, config.mode, config.autoTrim) : '—'}
         </p>
       </div>

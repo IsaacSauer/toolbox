@@ -21,8 +21,8 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
-        Loading…
+      <div className="ambient flex min-h-screen items-center justify-center bg-surface text-slate-400">
+        <span className="relative z-10 animate-pulse">Loading…</span>
       </div>
     )
   }
