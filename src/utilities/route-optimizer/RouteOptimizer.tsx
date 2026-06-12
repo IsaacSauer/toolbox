@@ -575,7 +575,7 @@ export function RouteOptimizer() {
               </p>
               <button
                 onClick={() => copyOrder(phase.stops)}
-                className="text-xs text-indigo-300 transition-colors hover:text-indigo-200"
+                className="no-glow text-xs text-indigo-300 transition-colors hover:text-indigo-200"
               >
                 {copied ? 'Copied ✓' : 'Copy list'}
               </button>

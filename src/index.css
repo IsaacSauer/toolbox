@@ -54,6 +54,68 @@ body {
   color: transparent;
 }
 
+/* Cursor-tracking spotlight — --x/--y are set by lib/cursor-glow.ts. */
+button {
+  position: relative;
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 200ms;
+}
+.spotlight {
+  position: relative;
+}
+button::after,
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--glow, 0);
+  transition: opacity var(--glow-fade, 0.3s) ease;
+  background: radial-gradient(
+    100px circle at var(--x, 50%) var(--y, 50%),
+    rgb(255 255 255 / 0.18),
+    transparent 70%
+  );
+}
+/* Opt-out for text-like buttons (inline links, full-width text rows) where
+   a rectangular spotlight or press-scale looks wrong. */
+button.no-glow::after {
+  content: none;
+}
+button:active:not(:disabled):not(.no-glow) {
+  transform: scale(0.97);
+}
+
+/* Safari draws a seam at the edge of a backdrop-filtered element when a
+   composited neighbor animates next to it (the card hover lift/shadow).
+   The blur is invisible on the flat page background anyway — drop it. */
+.card-spotlight {
+  backdrop-filter: none;
+}
+
+.card-spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--glow, 0);
+  transition: opacity var(--glow-fade, 0.4s) ease;
+  background: radial-gradient(
+    280px circle at var(--x, 50%) var(--y, 50%),
+    rgb(129 140 248 / 0.16),
+    rgb(34 211 238 / 0.05) 50%,
+    transparent 75%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
 ::selection {
   background-color: rgb(129 140 248 / 0.35);
 }

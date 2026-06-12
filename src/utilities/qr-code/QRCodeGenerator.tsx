@@ -193,16 +193,32 @@ const labelClass = 'block text-xs font-medium text-slate-400'
 
 function Field({
   label,
+  group,
   children,
 }: {
   label: string
+  /**
+   * Render as a plain group instead of a <label>. Required when the children
+   * are buttons: a label implicitly associates with its first labelable
+   * descendant and forwards hover/click to it, so wrapping a button row in a
+   * label makes the first button light up (and activate) from anywhere in
+   * the field.
+   */
+  group?: boolean
   children: React.ReactNode
 }) {
-  return (
-    <label className="block">
+  const content = (
+    <>
       <span className={labelClass}>{label}</span>
       <div className="mt-1.5">{children}</div>
-    </label>
+    </>
+  )
+  return group ? (
+    <div className="block" role="group" aria-label={label}>
+      {content}
+    </div>
+  ) : (
+    <label className="block">{content}</label>
   )
 }
 
@@ -459,7 +475,7 @@ export function QRCodeGenerator() {
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Encryption">
+                <Field group label="Encryption">
                   <div className="flex gap-2">
                     {(['WPA', 'WEP', 'nopass'] as const).map((enc) => (
                       <button
@@ -569,7 +585,7 @@ export function QRCodeGenerator() {
             </p>
 
             <div className="mt-4 space-y-4">
-              <Field label="Dot style">
+              <Field group label="Dot style">
                 <div className="flex flex-wrap gap-2">
                   {DOT_TYPES.map((d) => (
                     <button
@@ -588,7 +604,7 @@ export function QRCodeGenerator() {
               </Field>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Corner frame">
+                <Field group label="Corner frame">
                   <div className="flex flex-wrap gap-2">
                     {CORNER_SQUARE_TYPES.map((t) => (
                       <button
@@ -605,7 +621,7 @@ export function QRCodeGenerator() {
                     ))}
                   </div>
                 </Field>
-                <Field label="Corner dot">
+                <Field group label="Corner dot">
                   <div className="flex flex-wrap gap-2">
                     {CORNER_DOT_TYPES.map((t) => (
                       <button
@@ -665,7 +681,7 @@ export function QRCodeGenerator() {
                     className="w-full accent-indigo-500"
                   />
                 </Field>
-                <Field label="Error correction">
+                <Field group label="Error correction">
                   <div className="flex gap-2">
                     {ERROR_LEVELS.map((l) => (
                       <button
@@ -779,11 +795,11 @@ export function QRCodeGenerator() {
                     {saved.map((item) => (
                       <li
                         key={item.id}
-                        className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                        className="spotlight flex items-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2"
                       >
                         <button
                           onClick={() => loadCreation(item)}
-                          className="min-w-0 flex-1 text-left"
+                          className="no-glow min-w-0 flex-1 cursor-pointer text-left"
                           title="Load this QR code"
                         >
                           <span className="block truncate text-sm text-white">{item.name}</span>

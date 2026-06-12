@@ -146,7 +146,7 @@ export function AuthPage() {
               No account yet?{' '}
               <button
                 onClick={() => switchMode('register')}
-                className="font-medium text-indigo-300 transition-colors hover:text-indigo-200"
+                className="no-glow font-medium text-indigo-300 transition-colors hover:text-indigo-200"
               >
                 Register
               </button>
@@ -156,7 +156,7 @@ export function AuthPage() {
               Already have an account?{' '}
               <button
                 onClick={() => switchMode('login')}
-                className="font-medium text-indigo-300 transition-colors hover:text-indigo-200"
+                className="no-glow font-medium text-indigo-300 transition-colors hover:text-indigo-200"
               >
                 Log in
               </button>

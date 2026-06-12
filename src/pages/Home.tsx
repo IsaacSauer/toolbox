@@ -31,7 +31,7 @@ export function Home() {
             key={u.id}
             to={`/tools/${u.id}`}
             style={{ animationDelay: `${i * 60}ms` }}
-            className="glass group relative animate-fade-up overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-400/40 hover:shadow-xl hover:shadow-indigo-500/10"
+            className="glass card-spotlight group relative animate-fade-up overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-400/40 hover:shadow-xl hover:shadow-indigo-500/10"
           >
             {/* Accent glow that fades in on hover */}
             <div className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-indigo-500/20 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
