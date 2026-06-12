@@ -29,7 +29,7 @@ registerUtility({
 registerUtility({
   id: 'qr-code',
   name: 'QR Code Generator',
-  description: 'Create styled QR codes for URLs, WiFi, contacts, email and more.',
+  description: 'Create styled QR codes for URLs, WiFi, contacts, payments and more.',
   icon: '🔳',
   availableWithoutAccount: true,
   component: lazy(() =>

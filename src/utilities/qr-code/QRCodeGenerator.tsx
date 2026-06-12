@@ -15,13 +15,22 @@ import { supabase } from '../../lib/supabase'
 
 /**
  * QR code generator inspired by qr.io: encodes several content types
- * (URL, text, email, phone, SMS, WiFi, vCard, WhatsApp) and offers visual
+ * (URL, text, email, phone, SMS, WiFi, vCard, WhatsApp, payment) and offers visual
  * customization — dot/corner shapes, colors, an optional center logo — with
  * PNG/SVG/JPEG/WebP export. Styling preferences persist via useUtilityConfig;
  * the content being encoded stays ephemeral.
  */
 
-type ContentType = 'url' | 'text' | 'email' | 'phone' | 'sms' | 'wifi' | 'vcard' | 'whatsapp'
+type ContentType =
+  | 'url'
+  | 'text'
+  | 'email'
+  | 'phone'
+  | 'sms'
+  | 'wifi'
+  | 'vcard'
+  | 'whatsapp'
+  | 'payment'
 
 const CONTENT_TYPES: { id: ContentType; label: string }[] = [
   { id: 'url', label: 'URL' },
@@ -32,7 +41,15 @@ const CONTENT_TYPES: { id: ContentType; label: string }[] = [
   { id: 'wifi', label: 'WiFi' },
   { id: 'vcard', label: 'vCard' },
   { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'payment', label: 'Payment' },
 ]
+
+const PAYMENT_METHODS: { id: PaymentMethod; label: string }[] = [
+  { id: 'sepa', label: 'SEPA transfer' },
+  { id: 'paypal', label: 'PayPal.me' },
+]
+
+type PaymentMethod = 'sepa' | 'paypal'
 
 const DOT_TYPES: { id: DotType; label: string }[] = [
   { id: 'square', label: 'Square' },
@@ -84,6 +101,13 @@ interface ContentFields {
   vcardUrl: string
   whatsappNumber: string
   whatsappMessage: string
+  paymentMethod: PaymentMethod
+  paymentName: string
+  paymentIban: string
+  paymentBic: string
+  paymentAmount: string
+  paymentRemittance: string
+  paymentPaypalUser: string
 }
 
 const EMPTY_FIELDS: ContentFields = {
@@ -107,6 +131,13 @@ const EMPTY_FIELDS: ContentFields = {
   vcardUrl: '',
   whatsappNumber: '',
   whatsappMessage: '',
+  paymentMethod: 'sepa',
+  paymentName: '',
+  paymentIban: '',
+  paymentBic: '',
+  paymentAmount: '',
+  paymentRemittance: '',
+  paymentPaypalUser: '',
 }
 
 /** WiFi payload syntax requires \ ; , : " to be backslash-escaped. */
@@ -159,7 +190,41 @@ function buildPayload(type: ContentType, f: ContentFields): string {
       const text = f.whatsappMessage ? `?text=${encodeURIComponent(f.whatsappMessage)}` : ''
       return `https://wa.me/${number}${text}`
     }
+    case 'payment': {
+      if (f.paymentMethod === 'paypal') {
+        if (!f.paymentPaypalUser) return ''
+        const user = f.paymentPaypalUser.replace(/^@/, '')
+        const amount = parseAmount(f.paymentAmount)
+        return `https://paypal.me/${user}${amount ? `/${amount}EUR` : ''}`
+      }
+      // EPC069-12 "SEPA Credit Transfer" QR — the format EU banking apps scan.
+      const iban = f.paymentIban.replace(/\s/g, '').toUpperCase()
+      if (!iban || !f.paymentName) return ''
+      const amount = parseAmount(f.paymentAmount)
+      const lines = [
+        'BCD',
+        '002',
+        '1',
+        'SCT',
+        f.paymentBic.replace(/\s/g, '').toUpperCase(),
+        f.paymentName,
+        iban,
+        amount ? `EUR${amount}` : '',
+        '', // purpose code
+        '', // structured remittance
+        f.paymentRemittance,
+      ]
+      // The spec allows trailing empty elements to be omitted entirely.
+      while (lines.length && !lines[lines.length - 1]) lines.pop()
+      return lines.join('\n')
+    }
   }
+}
+
+/** Normalize a user-typed amount ("12,50", "12.5") to "12.50", or '' if invalid. */
+function parseAmount(value: string): string {
+  const n = Number(value.replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? n.toFixed(2) : ''
 }
 
 interface QrDesign {
@@ -575,6 +640,101 @@ export function QRCodeGenerator() {
                     className={`${inputClass} resize-y`}
                   />
                 </Field>
+              </>
+            )}
+
+            {c === 'payment' && (
+              <>
+                <Field group label="Payment method">
+                  <div className="flex gap-2">
+                    {PAYMENT_METHODS.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => setField('paymentMethod', m.id)}
+                        className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
+                          fields.paymentMethod === m.id
+                            ? 'bg-indigo-500 text-white'
+                            : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+
+                {fields.paymentMethod === 'sepa' ? (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Beneficiary name">
+                        <input
+                          value={fields.paymentName}
+                          onChange={(e) => setField('paymentName', e.target.value)}
+                          placeholder="Jane Doe"
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field label="IBAN">
+                        <input
+                          value={fields.paymentIban}
+                          onChange={(e) => setField('paymentIban', e.target.value)}
+                          placeholder="BE68 5390 0754 7034"
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field label="BIC (optional)">
+                        <input
+                          value={fields.paymentBic}
+                          onChange={(e) => setField('paymentBic', e.target.value)}
+                          placeholder="GKCCBEBB"
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field label="Amount in EUR (optional)">
+                        <input
+                          inputMode="decimal"
+                          value={fields.paymentAmount}
+                          onChange={(e) => setField('paymentAmount', e.target.value)}
+                          placeholder="12.50"
+                          className={inputClass}
+                        />
+                      </Field>
+                    </div>
+                    <Field label="Message (optional)">
+                      <input
+                        value={fields.paymentRemittance}
+                        onChange={(e) => setField('paymentRemittance', e.target.value)}
+                        placeholder="Invoice 2026-042"
+                        maxLength={140}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <p className="text-xs text-slate-500">
+                      Generates an EPC QR code — scannable from most European banking apps to
+                      pre-fill a SEPA transfer.
+                    </p>
+                  </>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="PayPal.me username">
+                      <input
+                        value={fields.paymentPaypalUser}
+                        onChange={(e) => setField('paymentPaypalUser', e.target.value)}
+                        placeholder="janedoe"
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Amount in EUR (optional)">
+                      <input
+                        inputMode="decimal"
+                        value={fields.paymentAmount}
+                        onChange={(e) => setField('paymentAmount', e.target.value)}
+                        placeholder="12.50"
+                        className={inputClass}
+                      />
+                    </Field>
+                  </div>
+                )}
               </>
             )}
           </div>
