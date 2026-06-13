@@ -47,6 +47,16 @@ body {
   border: 1px solid rgb(255 255 255 / 0.08);
 }
 
+/* Structural chrome (top bar, sidebar). Unlike the airy `glass` cards, these
+   sit full-width/full-height against the fixed ambient glow, which shows
+   through a 4%-white fill and washes the edges out into the background. A
+   semi-opaque dark backing keeps them as distinct, crisply-bordered panels. */
+@utility glass-strong {
+  background-color: rgb(13 17 28 / 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgb(255 255 255 / 0.12);
+}
+
 @utility text-gradient {
   background-image: linear-gradient(to right, #818cf8, #c084fc, #22d3ee);
   background-clip: text;

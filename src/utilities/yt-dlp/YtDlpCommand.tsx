@@ -265,7 +265,7 @@ export function YtDlpCommand() {
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_minmax(300px,420px)]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Field label="Video / playlist URL">
             <input
               type="url"
@@ -422,7 +422,7 @@ export function YtDlpCommand() {
           </div>
         </div>
 
-        <div className="lg:sticky lg:top-8 lg:self-start">
+        <div className="min-w-0 lg:sticky lg:top-8 lg:self-start">
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
@@ -483,7 +483,6 @@ export function YtDlpCommand() {
 
 /*
 On wiring it to a proxy backend later
-Yes — and this design sets that up nicely. The command-building logic is already a pure function, buildCommand(options, url), fully decoupled from the UI. If you later add a backend, the path is clean:
 
 Server-side: the backend already knows how to run yt-dlp; you'd send it the same options object (not the assembled string — never pass a shell string to a server). Better yet, translate options into a yt-dlp argument array server-side and spawn the process with execFile-style args (no shell), so there's zero shell-injection surface. The current shellQuote logic is only for the human-copy case.
 UI: add a "Download here" button next to "Copy" that POSTs the options and streams progress back. The builder page stays useful as the manual/offline path either way.

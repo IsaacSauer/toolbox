@@ -419,7 +419,7 @@ export function QRCodeGenerator() {
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_minmax(280px,360px)]">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
             {CONTENT_TYPES.map((t) => (
               <button
@@ -882,14 +882,14 @@ export function QRCodeGenerator() {
           </div>
         </div>
 
-        <div className="lg:sticky lg:top-8 lg:self-start">
+        <div className="min-w-0 lg:sticky lg:top-8 lg:self-start">
           <div className="glass flex flex-col items-center rounded-2xl p-5">
             <p className="self-start text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
               Preview
             </p>
             <div
               ref={previewRef}
-              className={`mt-4 overflow-hidden rounded-xl transition-opacity [&_canvas]:h-auto [&_canvas]:max-w-full ${
+              className={`mt-4 flex w-full justify-center overflow-hidden rounded-xl transition-opacity [&_canvas]:h-auto [&_canvas]:max-w-full ${
                 payload ? '' : 'opacity-30'
               }`}
             />
