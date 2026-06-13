@@ -27,6 +27,17 @@ registerUtility({
 })
 
 registerUtility({
+  id: 'yt-dlp',
+  name: 'yt-dlp Command Builder',
+  description: 'Build a ready-to-run yt-dlp command to download video or audio locally.',
+  icon: '⬇️',
+  availableWithoutAccount: false,
+  component: lazy(() =>
+    import('./yt-dlp/YtDlpCommand').then((m) => ({ default: m.YtDlpCommand }))
+  ),
+})
+
+registerUtility({
   id: 'qr-code',
   name: 'QR Code Generator',
   description: 'Create styled QR codes for URLs, WiFi, contacts, payments and more.',

@@ -4,7 +4,7 @@ import { getUtilities } from '../utilities/registry'
 
 export function Layout() {
   const { user, signOut } = useAuth()
-  const utilities = getUtilities()
+  const utilities = getUtilities().filter((u) => user || u.availableWithoutAccount)
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
@@ -33,11 +33,6 @@ export function Layout() {
                 {u.icon}
               </span>
               <span className="flex-1">{u.name}</span>
-              {!user && !u.availableWithoutAccount && (
-                <span className="text-xs opacity-60" title="Requires an account">
-                  🔒
-                </span>
-              )}
             </NavLink>
           ))}
         </nav>

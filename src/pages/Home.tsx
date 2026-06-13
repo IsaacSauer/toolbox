@@ -4,7 +4,7 @@ import { getUtilities } from '../utilities/registry'
 
 export function Home() {
   const { user } = useAuth()
-  const utilities = getUtilities()
+  const utilities = getUtilities().filter((u) => user || u.availableWithoutAccount)
 
   return (
     <div className="animate-fade-up">
@@ -35,12 +35,6 @@ export function Home() {
           >
             {/* Accent glow that fades in on hover */}
             <div className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-indigo-500/20 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
-
-            {!user && !u.availableWithoutAccount && (
-              <span className="absolute right-4 top-4 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-slate-400">
-                🔒 Account required
-              </span>
-            )}
 
             <span className="grid size-12 place-items-center rounded-xl bg-white/5 text-2xl ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
               {u.icon}
