@@ -20,6 +20,24 @@ npm install
 npm run dev
 ```
 
+### Edge functions
+
+Two utilities call Supabase edge functions (in [supabase/functions/](supabase/functions/)).
+Deploy them with the Supabase CLI:
+
+```sh
+npx supabase functions deploy cors-proxy   # Shortest Route shared-list import
+npx supabase functions deploy soccer       # Soccer Predictor fixtures + win %
+```
+
+The `soccer` function needs no secrets — each user enters their own
+[football-data.org](https://www.football-data.org/client/register) API token in
+the utility, which is saved to their account config (RLS-protected) and
+forwarded to the function per request. The free tier covers 12 major
+competitions for the current season (10 requests/minute, no daily cap); it does
+not include line-ups, so the win % and predicted scoreline are built from recent
+goals and head-to-head only.
+
 ## How passwords are stored
 
 Authentication is handled entirely by Supabase Auth. Passwords are hashed with

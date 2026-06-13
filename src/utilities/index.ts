@@ -47,3 +47,14 @@ registerUtility({
     import('./qr-code/QRCodeGenerator').then((m) => ({ default: m.QRCodeGenerator }))
   ),
 })
+
+registerUtility({
+  id: 'soccer-predictor',
+  name: 'Soccer Predictor',
+  description: 'Compare two teams or browse fixtures for a win % and likely scoreline.',
+  icon: '⚽',
+  availableWithoutAccount: false,
+  component: lazy(() =>
+    import('./soccer-predictor/SoccerPredictor').then((m) => ({ default: m.SoccerPredictor }))
+  ),
+})
