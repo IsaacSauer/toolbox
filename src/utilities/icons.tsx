@@ -16,6 +16,8 @@ import {
   QrCode,
   Clock,
   Goal,
+  Clapperboard,
+  TrendingUp,
 } from 'lucide-react'
 
 export const textCaseIcon = <CaseSensitive className="size-5" />
@@ -24,3 +26,5 @@ export const downloadIcon = <Download className="size-5" />
 export const qrCodeIcon = <QrCode className="size-5" />
 export const clockIcon = <Clock className="size-5" />
 export const soccerIcon = <Goal className="size-5" />
+export const moviesIcon = <Clapperboard className="size-5" />
+export const stockIcon = <TrendingUp className="size-5" />
