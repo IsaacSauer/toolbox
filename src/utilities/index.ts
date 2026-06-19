@@ -49,6 +49,17 @@ registerUtility({
 })
 
 registerUtility({
+  id: 'work-hours',
+  name: 'Work Hours',
+  description: 'Track hours worked per week and days off to see how many hours you still owe for the month.',
+  icon: '⏱️',
+  availableWithoutAccount: false,
+  component: lazy(() =>
+    import('./work-hours/WorkHoursTracker').then((m) => ({ default: m.WorkHoursTracker }))
+  ),
+})
+
+registerUtility({
   id: 'soccer-predictor',
   name: 'Soccer Predictor',
   description: 'Compare two teams or browse fixtures for a win % and likely scoreline.',
