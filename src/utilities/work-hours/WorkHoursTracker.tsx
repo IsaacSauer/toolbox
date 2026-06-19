@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
 
@@ -291,7 +291,7 @@ export function WorkHoursTracker() {
     .reverse()
 
   return (
-    <div className="max-w-3xl animate-fade-up">
+    <div className="animate-fade-up">
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Work Hours</h1>
         <SaveStatus saving={saving} />
@@ -399,16 +399,24 @@ export function WorkHoursTracker() {
             accent={stats.left >= 0 ? 'indigo' : 'emerald'}
           />
           <Stat
-            label="Work days"
-            value={String(stats.effectiveDays)}
-            sub={
-              [
-                stats.off && `−${stats.off} off`,
-                stats.hol && `−${stats.hol} holiday${stats.hol === 1 ? '' : 's'}`,
-              ]
-                .filter(Boolean)
-                .join(' · ') || undefined
+            label={
+              <>
+                Work days
+                {(stats.off || stats.hol) && (
+                  <span className="ml-1 normal-case tracking-normal text-slate-600">
+                    (
+                    {[
+                      stats.off && `−${stats.off} off`,
+                      stats.hol && `−${stats.hol} holiday${stats.hol === 1 ? '' : 's'}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    )
+                  </span>
+                )}
+              </>
             }
+            value={String(stats.effectiveDays)}
           />
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
@@ -599,7 +607,7 @@ function Stat({
   sub,
   accent,
 }: {
-  label: string
+  label: ReactNode
   value: string
   sub?: string
   accent?: 'indigo' | 'emerald'
@@ -608,7 +616,7 @@ function Stat({
     accent === 'indigo' ? 'text-indigo-300' : accent === 'emerald' ? 'text-emerald-300' : 'text-white'
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="truncate text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-1 whitespace-nowrap text-xl font-bold tabular-nums ${color}`}>{value}</p>
       {sub && <p className="mt-0.5 text-[11px] text-slate-500">{sub}</p>}
     </div>

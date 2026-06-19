@@ -245,7 +245,7 @@ export function YtDlpCommand() {
   }
 
   return (
-    <div className="max-w-5xl animate-fade-up">
+    <div className="animate-fade-up">
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl font-bold tracking-tight">yt-dlp Command Builder</h1>
         <SaveStatus saving={saving} />
