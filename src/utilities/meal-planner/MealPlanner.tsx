@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, ExternalLink, Plus, Search, Sparkles, Trash2, UtensilsCrossed, X } from 'lucide-react'
 import { SaveStatus } from '../../components/SaveStatus'
@@ -156,6 +156,16 @@ export function MealPlanner() {
       meals: [...prev.meals, { id: newId(), name: trimmed, type, recipe: link || undefined }],
     }))
   }
+  // Create a meal on the fly (from the weekly-plan picker) and return its id so
+  // the caller can immediately assign it to the slot.
+  function createMeal(name: string, type: MealType): string {
+    const id = newId()
+    setConfig((prev) => ({
+      ...prev,
+      meals: [...prev.meals, { id, name: name.trim(), type }],
+    }))
+    return id
+  }
   function updateMeal(id: string, patch: Partial<Meal>) {
     setConfig((prev) => ({
       ...prev,
@@ -266,6 +276,7 @@ export function MealPlanner() {
           mealsFor={mealsFor}
           mealById={mealById}
           score={score}
+          createMeal={createMeal}
           setSlot={setSlot}
           selectClass={selectClass}
           filledSlots={filledSlots}
@@ -296,6 +307,7 @@ function PlanTab({
   mealsFor,
   mealById,
   score,
+  createMeal,
   setSlot,
   selectClass,
   filledSlots,
@@ -312,6 +324,7 @@ function PlanTab({
   mealsFor: (slot: 'lunch' | 'dinner') => Meal[]
   mealById: (id?: string) => Meal | undefined
   score: (id: string) => number
+  createMeal: (name: string, type: MealType) => string
   setSlot: (dayIndex: number, slot: 'lunch' | 'dinner', mealId: string) => void
   selectClass: string
   filledSlots: number
@@ -402,21 +415,25 @@ function PlanTab({
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <SlotPicker
                     label="Lunch"
+                    slot="lunch"
                     dayLabel={DAY_LABELS[i]}
                     value={day.lunch}
                     meal={mealById(day.lunch)}
                     meals={mealsFor('lunch')}
                     score={score}
+                    createMeal={createMeal}
                     onChange={(id) => setSlot(i, 'lunch', id)}
                     triggerClass={selectClass}
                   />
                   <SlotPicker
                     label="Dinner"
+                    slot="dinner"
                     dayLabel={DAY_LABELS[i]}
                     value={day.dinner}
                     meal={mealById(day.dinner)}
                     meals={mealsFor('dinner')}
                     score={score}
+                    createMeal={createMeal}
                     onChange={(id) => setSlot(i, 'dinner', id)}
                     triggerClass={selectClass}
                   />
@@ -437,20 +454,24 @@ function PlanTab({
  */
 function SlotPicker({
   label,
+  slot,
   dayLabel,
   value,
   meal,
   meals,
   score,
+  createMeal,
   onChange,
   triggerClass,
 }: {
   label: string
+  slot: 'lunch' | 'dinner'
   dayLabel: string
   value?: string
   meal: Meal | undefined
   meals: Meal[]
   score: (id: string) => number
+  createMeal: (name: string, type: MealType) => string
   onChange: (id: string) => void
   triggerClass: string
 }) {
@@ -461,6 +482,11 @@ function SlotPicker({
   function choose(id: string) {
     onChange(id)
     setOpen(false)
+  }
+  // Create a brand-new meal (typed in the search box) tagged for this slot,
+  // then assign it straight away.
+  function createAndChoose(name: string) {
+    choose(createMeal(name, slot))
   }
 
   return (
@@ -486,6 +512,7 @@ function SlotPicker({
           meals={meals}
           score={score}
           onPick={choose}
+          onCreate={createAndChoose}
           onClose={() => setOpen(false)}
         />
       )}
@@ -499,6 +526,7 @@ function SlotPickerPopup({
   meals,
   score,
   onPick,
+  onCreate,
   onClose,
 }: {
   title: string
@@ -506,6 +534,7 @@ function SlotPickerPopup({
   meals: Meal[]
   score: (id: string) => number
   onPick: (id: string) => void
+  onCreate: (name: string) => void
   onClose: () => void
 }) {
   const [query, setQuery] = useState('')
@@ -519,8 +548,11 @@ function SlotPickerPopup({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const q = query.trim().toLowerCase()
+  const trimmed = query.trim()
+  const q = trimmed.toLowerCase()
   const filtered = q ? meals.filter((m) => m.name.toLowerCase().includes(q)) : meals
+  // Offer to create the typed meal when it isn't already an option for this slot.
+  const canCreate = trimmed.length > 0 && !meals.some((m) => m.name.toLowerCase() === q)
 
   // Suggestions: least-planned meals (over recent weeks + this week), current
   // pick excluded. Only shown when not searching.
@@ -594,6 +626,18 @@ function SlotPickerPopup({
 
         {/* Meal list */}
         <div className="mt-3 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+          {canCreate && (
+            <button
+              type="button"
+              onClick={() => onCreate(trimmed)}
+              className="flex w-full items-center gap-2 rounded-xl border border-dashed border-indigo-400/40 bg-indigo-500/10 px-3 py-2 text-left text-sm text-indigo-200 transition-colors hover:bg-indigo-500/20"
+            >
+              <Plus className="size-4 shrink-0" />
+              <span className="truncate">
+                Add “{trimmed}” to your meals
+              </span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onPick('')}
@@ -624,7 +668,7 @@ function SlotPickerPopup({
               </button>
             )
           })}
-          {filtered.length === 0 && (
+          {filtered.length === 0 && !canCreate && (
             <p className="px-3 py-6 text-center text-sm text-slate-500">
               No meals match “{query}”.
             </p>
@@ -673,8 +717,6 @@ function NameAutocomplete({
   inputClassName?: string
 }) {
   const [open, setOpen] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [rect, setRect] = useState<{ left: number; top: number; width: number } | null>(null)
 
   const q = value.trim().toLowerCase()
   const matches = q
@@ -682,30 +724,9 @@ function NameAutocomplete({
     : []
   const show = open && matches.length > 0
 
-  // Track the input's viewport position so the portalled list stays anchored
-  // to it through scrolling and resizing.
-  useLayoutEffect(() => {
-    if (!show) return
-    const measure = () => {
-      const el = inputRef.current
-      if (el) {
-        const r = el.getBoundingClientRect()
-        setRect({ left: r.left, top: r.bottom + 4, width: r.width })
-      }
-    }
-    measure()
-    window.addEventListener('scroll', measure, true)
-    window.addEventListener('resize', measure)
-    return () => {
-      window.removeEventListener('scroll', measure, true)
-      window.removeEventListener('resize', measure)
-    }
-  }, [show, value])
-
   return (
-    <div className={wrapperClassName}>
+    <div className={`relative ${wrapperClassName ?? ''}`}>
       <input
-        ref={inputRef}
         type="text"
         value={value}
         onChange={(e) => {
@@ -719,31 +740,27 @@ function NameAutocomplete({
         autoComplete="off"
         className={inputClassName}
       />
-      {show &&
-        rect &&
-        createPortal(
-          <ul
-            className="fixed z-50 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-slate-900/95 p-1 shadow-2xl backdrop-blur"
-            style={{ left: rect.left, top: rect.top, width: rect.width }}
-          >
-            {matches.map((o) => (
-              <li key={o}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    onChange(o)
-                    setOpen(false)
-                  }}
-                  className="block w-full truncate rounded-lg px-3 py-1.5 text-left text-sm text-slate-200 transition-colors hover:bg-white/10"
-                >
-                  {o}
-                </button>
-              </li>
-            ))}
-          </ul>,
-          document.body
-        )}
+      {show && (
+        // Anchored directly under the field so it scrolls with it. The parent
+        // card carries a raised z-index so this overlays the list below.
+        <ul className="absolute left-0 right-0 top-full z-30 mt-1 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-slate-900/95 p-1 shadow-2xl backdrop-blur">
+          {matches.map((o) => (
+            <li key={o}>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  onChange(o)
+                  setOpen(false)
+                }}
+                className="block w-full truncate rounded-lg px-3 py-1.5 text-left text-sm text-slate-200 transition-colors hover:bg-white/10"
+              >
+                {o}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -1034,7 +1051,8 @@ function MealsTab({
   return (
     <>
       {/* ---- Add a meal ---- */}
-      <div className="glass mt-6 rounded-2xl p-4">
+      {/* relative + raised z-index so the name autocomplete overlays the list below. */}
+      <div className="glass relative z-30 mt-6 rounded-2xl p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
           Add a meal
         </p>
@@ -1052,7 +1070,6 @@ function MealsTab({
               onChange={setDraftName}
               options={nameOptions}
               placeholder="e.g. Spaghetti bolognese"
-              wrapperClassName="relative"
               inputClassName="glass w-full min-w-48 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-600 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
           </label>

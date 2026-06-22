@@ -130,6 +130,17 @@ button:active:not(:disabled):not(.no-glow) {
   background-color: rgb(129 140 248 / 0.35);
 }
 
+/* Mobile browsers auto-zoom when focusing a form control whose text is under
+   16px. Our inputs use text-sm (14px), so force 16px on small screens to
+   suppress the zoom without touching the desktop layout. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
