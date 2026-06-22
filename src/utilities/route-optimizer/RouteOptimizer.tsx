@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
+import { useT } from '../../i18n/LanguageContext'
 
 /**
  * Shortest route generator: paste a list of addresses, the tool geocodes them
@@ -20,11 +21,131 @@ interface Stop {
 
 const MAX_STOPS = 30
 
-const TRAVEL_MODES: { id: TravelMode; label: string; icon: string }[] = [
-  { id: 'driving', label: 'Driving', icon: '🚗' },
-  { id: 'walking', label: 'Walking', icon: '🚶' },
-  { id: 'bicycling', label: 'Cycling', icon: '🚴' },
+const TRAVEL_MODES: { id: TravelMode; icon: string }[] = [
+  { id: 'driving', icon: '🚗' },
+  { id: 'walking', icon: '🚶' },
+  { id: 'bicycling', icon: '🚴' },
 ]
+
+// --- Localized strings ---
+
+interface ImportErrors {
+  notALink: string
+  appleNotGuide: string
+  appleNoData: string
+  googleNotFound: string
+}
+
+const STR = {
+  en: {
+    title: 'Shortest Route',
+    intro:
+      'Paste a list of locations and get them back in the shortest visiting order, with links to start the route in Google Maps, Apple Maps or Waze.',
+    importHeading: 'Import a shared list',
+    importPlaceholder: 'https://maps.app.goo.gl/… or https://guides.apple.com/?ug=…',
+    importing: 'Importing…',
+    import: 'Import',
+    importHint:
+      'Paste a Google Maps shared list or Apple Maps shared guide link — the places are added below with their exact locations. This reads the public share page, so it only works for publicly shared lists and may break if Google or Apple change their format.',
+    inputPlaceholder:
+      'One location per line, e.g.\nGrote Markt, Brussels\nAtomium, Brussels\nGravensteen, Ghent',
+    travelMode: {
+      driving: 'Driving',
+      walking: 'Walking',
+      bicycling: 'Cycling',
+    } as Record<TravelMode, string>,
+    fixedStartLabel: 'First line is my starting point',
+    roundTripLabel: 'Return to start (round trip)',
+    optimize: 'Optimize route',
+    optimizeWithCount: (n: number) => `Optimize route (${n} stops)`,
+    optimizeHint:
+      'Locations are looked up via OpenStreetMap (about one per second), and the order is optimized on straight-line distances.',
+    loadingSettings: 'Loading your settings…',
+    skipped: (list: string) => `Skipped (not found): ${list}`,
+    optimizedOrder: (km: string) => `Optimized order · ~${km} km as the crow flies`,
+    copied: 'Copied ✓',
+    copyList: 'Copy list',
+    backTo: (address: string) => `back to ${address}`,
+    startNavigating: 'Start navigating',
+    googleMaps: 'Google Maps',
+    appleMaps: 'Apple Maps',
+    part: (i: number, total: number) => ` · part ${i}/${total}`,
+    wazeHint: 'Waze only supports one destination per link — open the next stop as you go:',
+    wazeStop: (n: number) => `Waze → stop ${n}`,
+    wazeReturn: 'Waze → stop ↩',
+    importNoPlaces: 'The list was found but contained no places with coordinates.',
+    imported: (n: number, title: string | null) =>
+      `Imported ${n} place${n === 1 ? '' : 's'}${title ? ` from “${title}”` : ''}.`,
+    importFailed: 'Import failed. Try again in a moment.',
+    enterTwo: 'Enter at least two locations (one per line).',
+    tooMany: (max: number, entered: number) => `Maximum ${max} stops (you entered ${entered}).`,
+    lookingUp: (i: number, total: number) => `Looking up location ${i} of ${total}…`,
+    notEnoughFound:
+      'Could not find enough of those locations. Try adding city or country names.',
+    calculating: 'Calculating shortest order…',
+    errors: {
+      notALink: 'That does not look like a link. Paste the full share URL.',
+      appleNotGuide: 'This Apple Maps link is not a shared guide (no list data in it).',
+      appleNoData: 'Could not find guide data in the Apple Maps page.',
+      googleNotFound: 'Could not find a shared list in that link.',
+    } as ImportErrors,
+  },
+  nl: {
+    title: 'Kortste route',
+    intro:
+      'Plak een lijst met locaties en krijg ze terug in de kortste bezoekvolgorde, met links om de route te starten in Google Maps, Apple Maps of Waze.',
+    importHeading: 'Gedeelde lijst importeren',
+    importPlaceholder: 'https://maps.app.goo.gl/… of https://guides.apple.com/?ug=…',
+    importing: 'Importeren…',
+    import: 'Importeren',
+    importHint:
+      'Plak een gedeelde Google Maps-lijst of een gedeelde Apple Maps-gids — de plaatsen worden hieronder toegevoegd met hun exacte locatie. Dit leest de openbare deelpagina, dus het werkt enkel voor openbaar gedeelde lijsten en kan stoppen met werken als Google of Apple hun formaat wijzigen.',
+    inputPlaceholder:
+      'Eén locatie per regel, bv.\nGrote Markt, Brussel\nAtomium, Brussel\nGravensteen, Gent',
+    travelMode: {
+      driving: 'Met de auto',
+      walking: 'Te voet',
+      bicycling: 'Met de fiets',
+    } as Record<TravelMode, string>,
+    fixedStartLabel: 'De eerste regel is mijn startpunt',
+    roundTripLabel: 'Terug naar start (rondrit)',
+    optimize: 'Route optimaliseren',
+    optimizeWithCount: (n: number) => `Route optimaliseren (${n} stops)`,
+    optimizeHint:
+      'Locaties worden opgezocht via OpenStreetMap (ongeveer één per seconde) en de volgorde wordt geoptimaliseerd op basis van afstanden in vogelvlucht.',
+    loadingSettings: 'Je instellingen laden…',
+    skipped: (list: string) => `Overgeslagen (niet gevonden): ${list}`,
+    optimizedOrder: (km: string) => `Geoptimaliseerde volgorde · ~${km} km in vogelvlucht`,
+    copied: 'Gekopieerd ✓',
+    copyList: 'Lijst kopiëren',
+    backTo: (address: string) => `terug naar ${address}`,
+    startNavigating: 'Navigatie starten',
+    googleMaps: 'Google Maps',
+    appleMaps: 'Apple Maps',
+    part: (i: number, total: number) => ` · deel ${i}/${total}`,
+    wazeHint:
+      'Waze ondersteunt slechts één bestemming per link — open de volgende stop onderweg:',
+    wazeStop: (n: number) => `Waze → stop ${n}`,
+    wazeReturn: 'Waze → stop ↩',
+    importNoPlaces: 'De lijst is gevonden maar bevatte geen plaatsen met coördinaten.',
+    imported: (n: number, title: string | null) =>
+      `${n} plaats${n === 1 ? '' : 'en'} geïmporteerd${title ? ` uit “${title}”` : ''}.`,
+    importFailed: 'Importeren mislukt. Probeer het zo dadelijk opnieuw.',
+    enterTwo: 'Geef minstens twee locaties in (één per regel).',
+    tooMany: (max: number, entered: number) =>
+      `Maximaal ${max} stops (je gaf er ${entered} in).`,
+    lookingUp: (i: number, total: number) => `Locatie ${i} van ${total} opzoeken…`,
+    notEnoughFound:
+      'Kon onvoldoende van die locaties vinden. Voeg eventueel stad- of landnamen toe.',
+    calculating: 'Kortste volgorde berekenen…',
+    errors: {
+      notALink: 'Dat lijkt geen link te zijn. Plak de volledige deel-URL.',
+      appleNotGuide: 'Deze Apple Maps-link is geen gedeelde gids (er staat geen lijstdata in).',
+      appleNoData: 'Kon de gidsgegevens niet vinden op de Apple Maps-pagina.',
+      googleNotFound: 'Kon geen gedeelde lijst vinden in die link.',
+    } as ImportErrors,
+  },
+}
 
 // --- Geocoding (Nominatim, max 1 request/second per usage policy) ---
 
@@ -128,9 +249,9 @@ function parseGoogleList(raw: string): ImportedList {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function parseAppleGuide(html: string): ImportedList {
+function parseAppleGuide(html: string, errors: ImportErrors): ImportedList {
   const m = html.match(/<script id="shell-props" type="application\/json">([\s\S]*?)<\/script>/)
-  if (!m) throw new Error('Could not find guide data in the Apple Maps page.')
+  if (!m) throw new Error(errors.appleNoData)
   const state: any = JSON.parse(m[1]).initialState
   const cache: Record<string, any> = state?.placeCache ?? {}
   const card = (state?.cards ?? []).find((c: any) => c?.opts?.placeRefs?.length)
@@ -151,19 +272,19 @@ function parseAppleGuide(html: string): ImportedList {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-async function importSharedList(rawUrl: string): Promise<ImportedList> {
+async function importSharedList(rawUrl: string, errors: ImportErrors): Promise<ImportedList> {
   let url: URL
   try {
     url = new URL(rawUrl.trim())
   } catch {
-    throw new Error('That does not look like a link. Paste the full share URL.')
+    throw new Error(errors.notALink)
   }
 
   if (url.hostname.endsWith('apple.com')) {
     const ug = url.searchParams.get('ug')
-    if (!ug) throw new Error('This Apple Maps link is not a shared guide (no list data in it).')
+    if (!ug) throw new Error(errors.appleNotGuide)
     const html = await fetchViaProxy(`https://maps.apple.com/?ug=${encodeURIComponent(ug)}`)
-    return parseAppleGuide(html)
+    return parseAppleGuide(html, errors)
   }
 
   // Google: find the list id, resolving the short link via the proxy if needed.
@@ -181,7 +302,7 @@ async function importSharedList(rawUrl: string): Promise<ImportedList> {
       html.match(/(?:%211m4%211s|!1m4!1s)([A-Za-z0-9_-]{15,})/)?.[1] ??
       html.match(/(?:%212s|!2s)([A-Za-z0-9_-]{15,})/)?.[1]
   }
-  if (!id) throw new Error('Could not find a shared list in that link.')
+  if (!id) throw new Error(errors.googleNotFound)
   const pb = `!1m4!1s${id}!2e1!3m1!1e1!2e2!3e2!4i500`
   const raw = await fetchViaProxy(
     `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=${encodeURIComponent(pb)}`
@@ -339,6 +460,7 @@ type Phase =
     }
 
 export function RouteOptimizer() {
+  const t = useT(STR)
   const { config, setConfig, loading, saving } = useUtilityConfig('route-optimizer', {
     roundTrip: false,
     fixedStart: true,
@@ -364,11 +486,11 @@ export function RouteOptimizer() {
     if (!shareUrl.trim()) return
     setImportStatus({ kind: 'working' })
     try {
-      const { title, stops } = await importSharedList(shareUrl)
+      const { title, stops } = await importSharedList(shareUrl, t.errors)
       if (!stops.length) {
         setImportStatus({
           kind: 'error',
-          message: 'The list was found but contained no places with coordinates.',
+          message: t.importNoPlaces,
         })
         return
       }
@@ -385,23 +507,23 @@ export function RouteOptimizer() {
       setShareUrl('')
       setImportStatus({
         kind: 'done',
-        message: `Imported ${stops.length} place${stops.length === 1 ? '' : 's'}${title ? ` from “${title}”` : ''}.`,
+        message: t.imported(stops.length, title),
       })
     } catch (e) {
       setImportStatus({
         kind: 'error',
-        message: e instanceof Error ? e.message : 'Import failed. Try again in a moment.',
+        message: e instanceof Error ? e.message : t.importFailed,
       })
     }
   }
 
   async function optimize() {
     if (addresses.length < 2) {
-      setPhase({ kind: 'error', message: 'Enter at least two locations (one per line).' })
+      setPhase({ kind: 'error', message: t.enterTwo })
       return
     }
     if (addresses.length > MAX_STOPS) {
-      setPhase({ kind: 'error', message: `Maximum ${MAX_STOPS} stops (you entered ${addresses.length}).` })
+      setPhase({ kind: 'error', message: t.tooMany(MAX_STOPS, addresses.length) })
       return
     }
     const stops: Stop[] = []
@@ -413,7 +535,7 @@ export function RouteOptimizer() {
         stops.push({ address: addresses[i], ...cached })
         continue
       }
-      setPhase({ kind: 'working', message: `Looking up location ${i + 1} of ${addresses.length}…` })
+      setPhase({ kind: 'working', message: t.lookingUp(i + 1, addresses.length) })
       // Nominatim asks for at most one request per second.
       if (geocoded) await sleep(1100)
       geocoded = true
@@ -426,10 +548,10 @@ export function RouteOptimizer() {
       }
     }
     if (stops.length < 2) {
-      setPhase({ kind: 'error', message: 'Could not find enough of those locations. Try adding city or country names.' })
+      setPhase({ kind: 'error', message: t.notEnoughFound })
       return
     }
-    setPhase({ kind: 'working', message: 'Calculating shortest order…' })
+    setPhase({ kind: 'working', message: t.calculating })
     const { order, lengthKm } = solveOrder(stops, config.roundTrip, config.fixedStart)
     setPhase({
       kind: 'done',
@@ -448,7 +570,7 @@ export function RouteOptimizer() {
   }
 
   if (loading) {
-    return <p className="animate-pulse text-slate-400">Loading your settings…</p>
+    return <p className="animate-pulse text-slate-400">{t.loadingSettings}</p>
   }
 
   const working = phase.kind === 'working'
@@ -456,17 +578,14 @@ export function RouteOptimizer() {
   return (
     <div className="animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Shortest Route</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
         <SaveStatus saving={saving} />
       </div>
-      <p className="mt-2 text-slate-400">
-        Paste a list of locations and get them back in the shortest visiting order, with links to
-        start the route in Google Maps, Apple Maps or Waze.
-      </p>
+      <p className="mt-2 text-slate-400">{t.intro}</p>
 
       <div className="glass mt-8 rounded-2xl p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-          Import a shared list
+          {t.importHeading}
         </p>
         <div className="mt-2.5 flex gap-2">
           <input
@@ -474,7 +593,7 @@ export function RouteOptimizer() {
             value={shareUrl}
             onChange={(e) => setShareUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && importList()}
-            placeholder="https://maps.app.goo.gl/… or https://guides.apple.com/?ug=…"
+            placeholder={t.importPlaceholder}
             className="glass min-w-0 flex-1 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           />
           <button
@@ -482,7 +601,7 @@ export function RouteOptimizer() {
             disabled={importStatus.kind === 'working' || !shareUrl.trim()}
             className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {importStatus.kind === 'working' ? 'Importing…' : 'Import'}
+            {importStatus.kind === 'working' ? t.importing : t.import}
           </button>
         </div>
         {importStatus.kind === 'error' && (
@@ -491,18 +610,14 @@ export function RouteOptimizer() {
         {importStatus.kind === 'done' && (
           <p className="mt-2 text-xs text-emerald-300">{importStatus.message}</p>
         )}
-        <p className="mt-2 text-xs text-slate-500">
-          Paste a Google Maps shared list or Apple Maps shared guide link — the places are added
-          below with their exact locations. This reads the public share page, so it only works for
-          publicly shared lists and may break if Google or Apple change their format.
-        </p>
+        <p className="mt-2 text-xs text-slate-500">{t.importHint}</p>
       </div>
 
       <textarea
         value={input}
         onChange={(e) => setInput(e.target.value)}
         rows={7}
-        placeholder={'One location per line, e.g.\nGrote Markt, Brussels\nAtomium, Brussels\nGravensteen, Ghent'}
+        placeholder={t.inputPlaceholder}
         className="glass mt-4 w-full resize-y rounded-2xl p-4 text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
       />
 
@@ -518,7 +633,7 @@ export function RouteOptimizer() {
                   : 'border border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10 hover:text-white'
               }`}
             >
-              {m.icon} {m.label}
+              {m.icon} {t.travelMode[m.id]}
             </button>
           ))}
         </div>
@@ -529,7 +644,7 @@ export function RouteOptimizer() {
             onChange={(e) => setConfig({ fixedStart: e.target.checked })}
             className="size-4 accent-indigo-500"
           />
-          First line is my starting point
+          {t.fixedStartLabel}
         </label>
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-300">
           <input
@@ -538,7 +653,7 @@ export function RouteOptimizer() {
             onChange={(e) => setConfig({ roundTrip: e.target.checked })}
             className="size-4 accent-indigo-500"
           />
-          Return to start (round trip)
+          {t.roundTripLabel}
         </label>
       </div>
 
@@ -547,12 +662,13 @@ export function RouteOptimizer() {
         disabled={working || addresses.length < 2}
         className="mt-6 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {working ? phase.message : `Optimize route${addresses.length > 1 ? ` (${addresses.length} stops)` : ''}`}
+        {working
+          ? phase.message
+          : addresses.length > 1
+            ? t.optimizeWithCount(addresses.length)
+            : t.optimize}
       </button>
-      <p className="mt-2 text-xs text-slate-500">
-        Locations are looked up via OpenStreetMap (about one per second), and the order is
-        optimized on straight-line distances.
-      </p>
+      <p className="mt-2 text-xs text-slate-500">{t.optimizeHint}</p>
 
       {phase.kind === 'error' && (
         <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -564,20 +680,20 @@ export function RouteOptimizer() {
         <div className="mt-8 space-y-4">
           {phase.failed.length > 0 && (
             <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
-              Skipped (not found): {phase.failed.join(' · ')}
+              {t.skipped(phase.failed.join(' · '))}
             </p>
           )}
 
           <div className="glass rounded-2xl p-5">
             <div className="flex items-baseline justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-                Optimized order · ~{phase.lengthKm.toFixed(1)} km as the crow flies
+                {t.optimizedOrder(phase.lengthKm.toFixed(1))}
               </p>
               <button
                 onClick={() => copyOrder(phase.stops)}
                 className="no-glow text-xs text-indigo-300 transition-colors hover:text-indigo-200"
               >
-                {copied ? 'Copied ✓' : 'Copy list'}
+                {copied ? t.copied : t.copyList}
               </button>
             </div>
             <ol className="mt-3 space-y-2">
@@ -597,7 +713,7 @@ export function RouteOptimizer() {
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-white/15 text-xs">
                     ↩
                   </span>
-                  back to {phase.stops[0].address}
+                  {t.backTo(phase.stops[0].address)}
                 </li>
               )}
             </ol>
@@ -605,7 +721,7 @@ export function RouteOptimizer() {
 
           <div className="glass rounded-2xl p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Start navigating
+              {t.startNavigating}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {googleMapsUrls(phase.stops, phase.roundTrip, phase.mode).map((url, i, urls) => (
@@ -616,7 +732,8 @@ export function RouteOptimizer() {
                   rel="noreferrer"
                   className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:brightness-110"
                 >
-                  🗺️ Google Maps{urls.length > 1 ? ` · part ${i + 1}/${urls.length}` : ''}
+                  🗺️ {t.googleMaps}
+                  {urls.length > 1 ? t.part(i + 1, urls.length) : ''}
                 </a>
               ))}
               {appleMapsUrls(phase.stops, phase.roundTrip, phase.mode).map((url, i, urls) => (
@@ -627,13 +744,12 @@ export function RouteOptimizer() {
                   rel="noreferrer"
                   className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/10"
                 >
-                  🍎 Apple Maps{urls.length > 1 ? ` · part ${i + 1}/${urls.length}` : ''}
+                  🍎 {t.appleMaps}
+                  {urls.length > 1 ? t.part(i + 1, urls.length) : ''}
                 </a>
               ))}
             </div>
-            <p className="mt-4 text-xs text-slate-500">
-              Waze only supports one destination per link — open the next stop as you go:
-            </p>
+            <p className="mt-4 text-xs text-slate-500">{t.wazeHint}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {(phase.roundTrip ? [...phase.stops.slice(1), phase.stops[0]] : phase.stops.slice(1)).map(
                 (s, i) => (
@@ -644,7 +760,7 @@ export function RouteOptimizer() {
                     rel="noreferrer"
                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
                   >
-                    Waze → stop {i + 2 > phase.stops.length ? '↩' : i + 2}
+                    {i + 2 > phase.stops.length ? t.wazeReturn : t.wazeStop(i + 2)}
                   </a>
                 )
               )}

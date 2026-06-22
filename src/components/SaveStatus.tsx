@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/auth-context'
+import { useT } from '../i18n/LanguageContext'
+
+const STR = {
+  en: { signInToSave: 'Sign in to save settings →', saving: 'Saving…', saved: 'Settings saved' },
+  nl: { signInToSave: 'Meld je aan om instellingen te bewaren →', saving: 'Bewaren…', saved: 'Instellingen bewaard' },
+}
 
 /**
  * Save indicator shown in a utility's header. Signed in it reflects the
@@ -8,6 +14,7 @@ import { useAuth } from '../auth/auth-context'
  */
 export function SaveStatus({ saving }: { saving: boolean }) {
   const { user } = useAuth()
+  const t = useT(STR)
 
   if (!user) {
     return (
@@ -15,7 +22,7 @@ export function SaveStatus({ saving }: { saving: boolean }) {
         to="/login"
         className="text-xs text-slate-500 transition-colors hover:text-indigo-300"
       >
-        Sign in to save settings →
+        {t.signInToSave}
       </Link>
     )
   }
@@ -25,7 +32,7 @@ export function SaveStatus({ saving }: { saving: boolean }) {
       <span
         className={`size-1.5 rounded-full ${saving ? 'animate-pulse bg-amber-400' : 'bg-emerald-400'}`}
       />
-      {saving ? 'Saving…' : 'Settings saved'}
+      {saving ? t.saving : t.saved}
     </span>
   )
 }

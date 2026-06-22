@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ChevronDown, ExternalLink, Plus, Search, Sparkles, Trash2, UtensilsCrossed, X } from 'lucide-react'
 import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
+import { useLang, useT } from '../../i18n/LanguageContext'
 
 /**
  * Weekly Meal Planner. Two tabs:
@@ -10,19 +11,15 @@ import { useUtilityConfig } from '../../hooks/useUtilityConfig'
  *   • Weekly Plan — pick a lunch and a dinner for each day of the week,
  *     chosen from your own list of meals. Navigate week to week; every week
  *     you fill in is kept in your account config.
- *   • My Meals    — add / edit / remove the meals you cook, each tagged as a
- *     lunch, a dinner, or both. The plan's dropdowns are filtered by that tag.
+ *   • My Meals    — add / edit / remove the meals you cook.
  *
  * Meals and week plans both live in the per-user utility config (synced to your
  * account, RLS-protected). Gated behind sign-in — that's the "password".
  */
 
-type MealType = 'lunch' | 'dinner' | 'both'
-
 interface Meal {
   id: string
   name: string
-  type: MealType
   /** Optional link to the recipe — a webpage or an app deep-link. */
   recipe?: string
 }
@@ -44,8 +41,6 @@ const DEFAULTS: MealConfig = {
   weeks: {},
 }
 
-const DAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
 /** How many weeks before the displayed week to weigh recommendations by. */
 const WEEKS_LOOKBACK = 4
 /** How many suggestion chips to show per slot. */
@@ -53,11 +48,122 @@ const MAX_SUGGESTIONS = 3
 /** sessionStorage key for "don't ask before removing a meal again this session". */
 const SKIP_CONFIRM_KEY = 'meal-planner:skip-remove-confirm'
 
-const MEAL_TYPES: { value: MealType; label: string }[] = [
-  { value: 'lunch', label: 'Lunch' },
-  { value: 'dinner', label: 'Dinner' },
-  { value: 'both', label: 'Both' },
-]
+type Slot = 'lunch' | 'dinner'
+
+/** All user-facing strings for this tool, co-located per language. */
+const STR = {
+  en: {
+    title: 'Meal Planner',
+    subtitle:
+      'Plan a lunch and a dinner for every day of the week from your own list of meals. Meals and week plans are saved to your account.',
+    loading: 'Loading your meals…',
+    tabPlan: 'Weekly Plan',
+    tabMeals: 'My Meals',
+    prevWeek: 'Previous week',
+    nextWeek: 'Next week',
+    thisWeek: 'This week',
+    plannedThisWeek: 'Planned this week',
+    noMealsTitle: "You haven't added any meals yet.",
+    noMealsHint: 'Add the meals you cook first, then plan them across the week.',
+    addMealsCta: 'Add meals →',
+    today: 'Today',
+    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    slots: { lunch: 'Lunch', dinner: 'Dinner' } as Record<Slot, string>,
+    nothingPlanned: 'Nothing planned',
+    deletedMeal: '(deleted meal)',
+    recipe: 'Recipe',
+    openRecipe: 'Open recipe',
+    openRecipeFor: (name: string) => `Open recipe for ${name}`,
+    chooseAria: (title: string) => `Choose ${title}`,
+    close: 'Close',
+    searchMeals: 'Search meals…',
+    suggested: 'Suggested · cooked least lately',
+    notPlannedRecently: 'Not planned recently',
+    plannedRecently: (n: number) => `Planned ${n}× recently`,
+    addToMeals: (name: string) => `Add “${name}” to your meals`,
+    notLately: 'not lately',
+    timesLately: (n: number) => `${n}× lately`,
+    noMatch: (q: string) => `No meals match “${q}”.`,
+    addAMeal: 'Add a meal',
+    name: 'Name',
+    namePlaceholder: 'e.g. Spaghetti bolognese',
+    recipeLink: 'Recipe link',
+    optional: '(optional)',
+    recipePlaceholder: 'https://… or an app link',
+    add: 'Add',
+    recipeFieldPlaceholder: 'Recipe link (optional)',
+    removeMeal: 'Remove meal',
+    removeNamed: (name: string) => `Remove ${name}`,
+    mealName: 'Meal name',
+    noMealsYet: 'No meals yet.',
+    noMealsYetHint: "Add the meals you cook above — they'll show up in the weekly plan.",
+    editMeal: 'Edit meal',
+    remove: 'Remove',
+    done: 'Done',
+    confirmRemoveTitle: 'Remove this meal?',
+    confirmRemoveBody: (name: string) =>
+      `“${name}” will be deleted and cleared from any days it was planned for.`,
+    dontAskAgain: "Don't ask again this session",
+    cancel: 'Cancel',
+    confirmRemoveAria: 'Confirm remove',
+  },
+  nl: {
+    title: 'Maaltijdplanner',
+    subtitle:
+      'Plan een lunch en avondeten voor elke dag van de week uit je eigen maaltijdenlijst. Maaltijden en weekplanningen worden in je account bewaard.',
+    loading: 'Je maaltijden laden…',
+    tabPlan: 'Weekplanning',
+    tabMeals: 'Mijn maaltijden',
+    prevWeek: 'Vorige week',
+    nextWeek: 'Volgende week',
+    thisWeek: 'Deze week',
+    plannedThisWeek: 'Deze week gepland',
+    noMealsTitle: 'Je hebt nog geen maaltijden toegevoegd.',
+    noMealsHint: 'Voeg eerst de maaltijden toe die je kookt en plan ze daarna over de week.',
+    addMealsCta: 'Maaltijden toevoegen →',
+    today: 'Vandaag',
+    days: ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'],
+    slots: { lunch: 'Lunch', dinner: 'Avondeten' } as Record<Slot, string>,
+    nothingPlanned: 'Niets gepland',
+    deletedMeal: '(verwijderde maaltijd)',
+    recipe: 'Recept',
+    openRecipe: 'Recept openen',
+    openRecipeFor: (name: string) => `Recept openen voor ${name}`,
+    chooseAria: (title: string) => `Kies ${title}`,
+    close: 'Sluiten',
+    searchMeals: 'Zoek maaltijden…',
+    suggested: 'Voorgesteld · laatst het minst gekookt',
+    notPlannedRecently: 'Niet recent gepland',
+    plannedRecently: (n: number) => `${n}× recent gepland`,
+    addToMeals: (name: string) => `“${name}” aan je maaltijden toevoegen`,
+    notLately: 'niet recent',
+    timesLately: (n: number) => `${n}× recent`,
+    noMatch: (q: string) => `Geen maaltijden gevonden voor “${q}”.`,
+    addAMeal: 'Maaltijd toevoegen',
+    name: 'Naam',
+    namePlaceholder: 'bv. Spaghetti bolognese',
+    recipeLink: 'Receptlink',
+    optional: '(optioneel)',
+    recipePlaceholder: 'https://… of een app-link',
+    add: 'Toevoegen',
+    recipeFieldPlaceholder: 'Receptlink (optioneel)',
+    removeMeal: 'Maaltijd verwijderen',
+    removeNamed: (name: string) => `${name} verwijderen`,
+    mealName: 'Naam maaltijd',
+    noMealsYet: 'Nog geen maaltijden.',
+    noMealsYetHint:
+      'Voeg hierboven de maaltijden toe die je kookt — ze verschijnen in de weekplanning.',
+    editMeal: 'Maaltijd bewerken',
+    remove: 'Verwijderen',
+    done: 'Klaar',
+    confirmRemoveTitle: 'Deze maaltijd verwijderen?',
+    confirmRemoveBody: (name: string) =>
+      `“${name}” wordt verwijderd en gewist uit alle dagen waarvoor het gepland stond.`,
+    dontAskAgain: 'Niet meer vragen deze sessie',
+    cancel: 'Annuleren',
+    confirmRemoveAria: 'Verwijderen bevestigen',
+  },
+}
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')
@@ -100,10 +206,7 @@ function normalizeUrl(raw: string): string {
  * weeks immediately before `weekStart`. Used to bias suggestions toward meals
  * you've cooked the least lately.
  */
-function recentUsage(
-  weeks: MealConfig['weeks'],
-  weekStart: Date
-): Record<string, number> {
+function recentUsage(weeks: MealConfig['weeks'], weekStart: Date): Record<string, number> {
   const counts: Record<string, number> = {}
   for (let i = 1; i <= WEEKS_LOOKBACK; i++) {
     const plan = weeks[ymd(addDays(weekStart, -7 * i))]
@@ -122,6 +225,8 @@ export function MealPlanner() {
     'meal-planner',
     DEFAULTS
   )
+  const t = useT(STR)
+  const { locale } = useLang()
 
   const [tab, setTab] = useState<'plan' | 'meals'>('plan')
 
@@ -147,22 +252,22 @@ export function MealPlanner() {
   const score = (id: string) => (pastUsage[id] ?? 0) + (thisWeekUsage[id] ?? 0)
 
   // ---- Meal mutations ----
-  function addMeal(name: string, type: MealType, recipe: string) {
+  function addMeal(name: string, recipe: string) {
     const trimmed = name.trim()
     if (!trimmed) return
     const link = recipe.trim()
     setConfig((prev) => ({
       ...prev,
-      meals: [...prev.meals, { id: newId(), name: trimmed, type, recipe: link || undefined }],
+      meals: [...prev.meals, { id: newId(), name: trimmed, recipe: link || undefined }],
     }))
   }
   // Create a meal on the fly (from the weekly-plan picker) and return its id so
   // the caller can immediately assign it to the slot.
-  function createMeal(name: string, type: MealType): string {
+  function createMeal(name: string): string {
     const id = newId()
     setConfig((prev) => ({
       ...prev,
-      meals: [...prev.meals, { id, name: name.trim(), type }],
+      meals: [...prev.meals, { id, name: name.trim() }],
     }))
     return id
   }
@@ -191,7 +296,7 @@ export function MealPlanner() {
   }
 
   // ---- Plan mutations ----
-  function setSlot(dayIndex: number, slot: 'lunch' | 'dinner', mealId: string) {
+  function setSlot(dayIndex: number, slot: Slot, mealId: string) {
     setConfig((prev) => {
       const week = prev.weeks[weekKey] ?? {}
       const day = week[dayIndex] ?? {}
@@ -208,15 +313,13 @@ export function MealPlanner() {
     })
   }
 
-  const mealsFor = (slot: 'lunch' | 'dinner') =>
-    config.meals.filter((m) => m.type === slot || m.type === 'both')
   const mealById = (id?: string) => config.meals.find((m) => m.id === id)
 
   function shiftWeek(delta: number) {
     setWeekStart((w) => addDays(w, delta * 7))
   }
 
-  const rangeLabel = `${weekStart.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${days[6].toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
+  const rangeLabel = `${weekStart.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} – ${days[6].toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`
 
   // Planning progress for the visible week (out of 14 slots).
   const filledSlots = days.reduce((sum, _d, i) => {
@@ -236,28 +339,25 @@ export function MealPlanner() {
     'glass w-full rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20'
 
   if (loading) {
-    return <p className="animate-pulse text-slate-400">Loading your meals…</p>
+    return <p className="animate-pulse text-slate-400">{t.loading}</p>
   }
 
   return (
     <div className="animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Meal Planner</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
         <SaveStatus saving={saving} />
       </div>
-      <p className="mt-2 text-slate-400">
-        Plan a lunch and a dinner for every day of the week from your own list of meals. Meals and
-        week plans are saved to your account.
-      </p>
+      <p className="mt-2 text-slate-400">{t.subtitle}</p>
 
       {/* ---- Tabs ---- */}
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <button className={tabClass(tab === 'plan')} onClick={() => setTab('plan')}>
-          Weekly Plan
+          {t.tabPlan}
         </button>
         <button className={tabClass(tab === 'meals')} onClick={() => setTab('meals')}>
           <span className="inline-flex items-center gap-1.5">
-            <UtensilsCrossed className="size-4" /> My Meals
+            <UtensilsCrossed className="size-4" /> {t.tabMeals}
             {config.meals.length > 0 && (
               <span className="text-xs opacity-70">{config.meals.length}</span>
             )}
@@ -273,7 +373,7 @@ export function MealPlanner() {
           days={days}
           today={today}
           weekPlan={weekPlan}
-          mealsFor={mealsFor}
+          meals={config.meals}
           mealById={mealById}
           score={score}
           createMeal={createMeal}
@@ -290,7 +390,6 @@ export function MealPlanner() {
           addMeal={addMeal}
           updateMeal={updateMeal}
           removeMeal={removeMeal}
-          selectClass={selectClass}
         />
       )}
     </div>
@@ -304,7 +403,7 @@ function PlanTab({
   days,
   today,
   weekPlan,
-  mealsFor,
+  meals,
   mealById,
   score,
   createMeal,
@@ -321,17 +420,20 @@ function PlanTab({
   days: Date[]
   today: Date
   weekPlan: Record<number, DayPlan>
-  mealsFor: (slot: 'lunch' | 'dinner') => Meal[]
+  meals: Meal[]
   mealById: (id?: string) => Meal | undefined
   score: (id: string) => number
-  createMeal: (name: string, type: MealType) => string
-  setSlot: (dayIndex: number, slot: 'lunch' | 'dinner', mealId: string) => void
+  createMeal: (name: string) => string
+  setSlot: (dayIndex: number, slot: Slot, mealId: string) => void
   selectClass: string
   filledSlots: number
   pct: number
   hasMeals: boolean
   goToMeals: () => void
 }) {
+  const t = useT(STR)
+  const { locale } = useLang()
+
   return (
     <>
       {/* ---- Week navigation ---- */}
@@ -340,7 +442,7 @@ function PlanTab({
           <button
             onClick={() => shiftWeek(-1)}
             className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 hover:border-white/20 hover:bg-white/10"
-            aria-label="Previous week"
+            aria-label={t.prevWeek}
           >
             ←
           </button>
@@ -348,7 +450,7 @@ function PlanTab({
           <button
             onClick={() => shiftWeek(1)}
             className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 hover:border-white/20 hover:bg-white/10"
-            aria-label="Next week"
+            aria-label={t.nextWeek}
           >
             →
           </button>
@@ -357,7 +459,7 @@ function PlanTab({
           onClick={toThisWeek}
           className="rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs text-slate-300 hover:border-white/20 hover:bg-white/10"
         >
-          This week
+          {t.thisWeek}
         </button>
       </div>
 
@@ -365,7 +467,7 @@ function PlanTab({
       <div className="glass mt-4 rounded-2xl p-5">
         <div className="flex items-baseline justify-between">
           <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-            Planned this week
+            {t.plannedThisWeek}
           </p>
           <p className="text-sm font-bold tabular-nums text-white">{filledSlots} / 14</p>
         </div>
@@ -380,15 +482,13 @@ function PlanTab({
       {!hasMeals ? (
         <div className="glass mt-6 rounded-2xl p-8 text-center">
           <UtensilsCrossed className="mx-auto size-8 text-slate-500" />
-          <p className="mt-3 text-sm text-slate-300">You haven't added any meals yet.</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Add the meals you cook first, then plan them across the week.
-          </p>
+          <p className="mt-3 text-sm text-slate-300">{t.noMealsTitle}</p>
+          <p className="mt-1 text-xs text-slate-500">{t.noMealsHint}</p>
           <button
             onClick={goToMeals}
             className="mt-4 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition-all hover:brightness-110"
           >
-            Add meals →
+            {t.addMealsCta}
           </button>
         </div>
       ) : (
@@ -402,36 +502,34 @@ function PlanTab({
                 className={`glass rounded-2xl p-4 ${isToday ? 'ring-1 ring-indigo-400/60' : ''}`}
               >
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-semibold text-white">{DAY_LABELS[i]}</span>
+                  <span className="text-sm font-semibold text-white">{t.days[i]}</span>
                   <span className="text-xs text-slate-500">
-                    {d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                    {d.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
                   </span>
                   {isToday && (
                     <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-medium text-indigo-300">
-                      Today
+                      {t.today}
                     </span>
                   )}
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <SlotPicker
-                    label="Lunch"
                     slot="lunch"
-                    dayLabel={DAY_LABELS[i]}
+                    dayLabel={t.days[i]}
                     value={day.lunch}
                     meal={mealById(day.lunch)}
-                    meals={mealsFor('lunch')}
+                    meals={meals}
                     score={score}
                     createMeal={createMeal}
                     onChange={(id) => setSlot(i, 'lunch', id)}
                     triggerClass={selectClass}
                   />
                   <SlotPicker
-                    label="Dinner"
                     slot="dinner"
-                    dayLabel={DAY_LABELS[i]}
+                    dayLabel={t.days[i]}
                     value={day.dinner}
                     meal={mealById(day.dinner)}
-                    meals={mealsFor('dinner')}
+                    meals={meals}
                     score={score}
                     createMeal={createMeal}
                     onChange={(id) => setSlot(i, 'dinner', id)}
@@ -449,11 +547,9 @@ function PlanTab({
 
 /**
  * A meal slot: a button showing the current pick that opens a searchable popup
- * card to change it. The picker carries the search box, the full meal list and
- * the frequency-based suggestions.
+ * card to change it. Empty slots get a red glow so unplanned meals stand out.
  */
 function SlotPicker({
-  label,
   slot,
   dayLabel,
   value,
@@ -464,29 +560,31 @@ function SlotPicker({
   onChange,
   triggerClass,
 }: {
-  label: string
-  slot: 'lunch' | 'dinner'
+  slot: Slot
   dayLabel: string
   value?: string
   meal: Meal | undefined
   meals: Meal[]
   score: (id: string) => number
-  createMeal: (name: string, type: MealType) => string
+  createMeal: (name: string) => string
   onChange: (id: string) => void
   triggerClass: string
 }) {
+  const t = useT(STR)
   const [open, setOpen] = useState(false)
+  const label = t.slots[slot]
   // A meal that was deleted but is still referenced on this day.
   const missing = Boolean(value) && !meal
+  // "Not filled in" — no resolved meal for this slot.
+  const empty = !meal
 
   function choose(id: string) {
     onChange(id)
     setOpen(false)
   }
-  // Create a brand-new meal (typed in the search box) tagged for this slot,
-  // then assign it straight away.
+  // Create a brand-new meal (typed in the search box), then assign it.
   function createAndChoose(name: string) {
-    choose(createMeal(name, slot))
+    choose(createMeal(name))
   }
 
   return (
@@ -498,10 +596,12 @@ function SlotPicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`flex items-center justify-between gap-2 text-left ${triggerClass}`}
+        className={`flex items-center justify-between gap-2 text-left ${triggerClass} ${
+          empty ? 'ring-1 ring-rose-500/50 shadow-[0_0_12px_-2px_rgba(244,63,94,0.55)]' : ''
+        }`}
       >
-        <span className={`truncate ${meal ? 'text-white' : missing ? 'text-amber-300' : 'text-slate-500'}`}>
-          {meal ? meal.name : missing ? '(deleted meal)' : 'Nothing planned'}
+        <span className={`truncate ${meal ? 'text-white' : missing ? 'text-amber-300' : 'text-rose-300'}`}>
+          {meal ? meal.name : missing ? t.deletedMeal : t.nothingPlanned}
         </span>
         <ChevronDown className="size-4 shrink-0 text-slate-500" />
       </button>
@@ -537,6 +637,7 @@ function SlotPickerPopup({
   onCreate: (name: string) => void
   onClose: () => void
 }) {
+  const t = useT(STR)
   const [query, setQuery] = useState('')
 
   // Close on Escape.
@@ -551,7 +652,7 @@ function SlotPickerPopup({
   const trimmed = query.trim()
   const q = trimmed.toLowerCase()
   const filtered = q ? meals.filter((m) => m.name.toLowerCase().includes(q)) : meals
-  // Offer to create the typed meal when it isn't already an option for this slot.
+  // Offer to create the typed meal when it isn't already in the list.
   const canCreate = trimmed.length > 0 && !meals.some((m) => m.name.toLowerCase() === q)
 
   // Suggestions: least-planned meals (over recent weeks + this week), current
@@ -569,7 +670,7 @@ function SlotPickerPopup({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={`Choose ${title}`}
+      aria-label={t.chooseAria(title)}
     >
       <div
         className="glass flex max-h-[80vh] w-full max-w-md flex-col rounded-2xl p-4 shadow-2xl"
@@ -580,7 +681,7 @@ function SlotPickerPopup({
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Close"
+            aria-label={t.close}
           >
             <X className="size-4" />
           </button>
@@ -594,7 +695,7 @@ function SlotPickerPopup({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search meals…"
+            placeholder={t.searchMeals}
             className="glass w-full rounded-xl py-2 pl-9 pr-3 text-sm text-white placeholder-slate-600 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           />
         </div>
@@ -603,7 +704,7 @@ function SlotPickerPopup({
         {suggestions.length > 0 && (
           <div className="mt-3">
             <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
-              <Sparkles className="size-3" /> Suggested · cooked least lately
+              <Sparkles className="size-3" /> {t.suggested}
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {suggestions.map((m) => {
@@ -613,7 +714,7 @@ function SlotPickerPopup({
                     key={m.id}
                     type="button"
                     onClick={() => onPick(m.id)}
-                    title={n === 0 ? 'Not planned recently' : `Planned ${n}× recently`}
+                    title={n === 0 ? t.notPlannedRecently : t.plannedRecently(n)}
                     className="rounded-lg border border-indigo-400/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] text-indigo-200 transition-all hover:border-indigo-400/60 hover:bg-indigo-500/20"
                   >
                     {m.name}
@@ -633,9 +734,7 @@ function SlotPickerPopup({
               className="flex w-full items-center gap-2 rounded-xl border border-dashed border-indigo-400/40 bg-indigo-500/10 px-3 py-2 text-left text-sm text-indigo-200 transition-colors hover:bg-indigo-500/20"
             >
               <Plus className="size-4 shrink-0" />
-              <span className="truncate">
-                Add “{trimmed}” to your meals
-              </span>
+              <span className="truncate">{t.addToMeals(trimmed)}</span>
             </button>
           )}
           <button
@@ -647,7 +746,7 @@ function SlotPickerPopup({
                 : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
             }`}
           >
-            Nothing planned
+            {t.nothingPlanned}
           </button>
           {filtered.map((m) => {
             const selected = m.id === value
@@ -663,15 +762,13 @@ function SlotPickerPopup({
               >
                 <span className="truncate">{m.name}</span>
                 <span className="shrink-0 text-[11px] text-slate-500">
-                  {n === 0 ? 'not lately' : `${n}× lately`}
+                  {n === 0 ? t.notLately : t.timesLately(n)}
                 </span>
               </button>
             )
           })}
           {filtered.length === 0 && !canCreate && (
-            <p className="px-3 py-6 text-center text-sm text-slate-500">
-              No meals match “{query}”.
-            </p>
+            <p className="px-3 py-6 text-center text-sm text-slate-500">{t.noMatch(query)}</p>
           )}
         </div>
       </div>
@@ -682,6 +779,7 @@ function SlotPickerPopup({
 
 /** Small "Recipe" link that opens the URL (webpage or app deep-link) in a new tab. */
 function RecipeLink({ url }: { url: string }) {
+  const t = useT(STR)
   return (
     <a
       href={normalizeUrl(url)}
@@ -691,7 +789,7 @@ function RecipeLink({ url }: { url: string }) {
       className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-300 transition-colors hover:text-indigo-200"
       title={url}
     >
-      <ExternalLink className="size-3" /> Recipe
+      <ExternalLink className="size-3" /> {t.recipe}
     </a>
   )
 }
@@ -765,28 +863,6 @@ function NameAutocomplete({
   )
 }
 
-const typeLabel = (t: MealType) => MEAL_TYPES.find((x) => x.value === t)?.label ?? ''
-
-/** The three-way Lunch / Dinner / Both segmented toggle. */
-function TypeToggle({ value, onChange }: { value: MealType; onChange: (t: MealType) => void }) {
-  return (
-    <div className="inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
-      {MEAL_TYPES.map((t) => (
-        <button
-          key={t.value}
-          type="button"
-          onClick={() => onChange(t.value)}
-          className={`rounded-lg px-3 py-1 text-xs font-medium transition-all duration-200 ${
-            value === t.value ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 /** Recipe-link input paired with an "open" button (greyed out when empty). */
 function RecipeField({
   value,
@@ -799,14 +875,15 @@ function RecipeField({
   onChange: (v: string | undefined) => void
   className?: string
 }) {
+  const t = useT(STR)
   return (
     <div className={`flex items-center gap-1.5 ${className ?? ''}`}>
       <input
         type="text"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value.trim() || undefined)}
-        placeholder="Recipe link (optional)"
-        aria-label="Recipe link"
+        placeholder={t.recipeFieldPlaceholder}
+        aria-label={t.recipeLink}
         className="glass min-w-0 flex-1 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-600 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
       />
       {value ? (
@@ -815,8 +892,8 @@ function RecipeField({
           target="_blank"
           rel="noopener noreferrer"
           className="shrink-0 rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 transition-all hover:border-indigo-400/40 hover:bg-indigo-500/10 hover:text-indigo-300"
-          aria-label={`Open recipe for ${name}`}
-          title="Open recipe"
+          aria-label={t.openRecipeFor(name)}
+          title={t.openRecipe}
         >
           <ExternalLink className="size-4" />
         </a>
@@ -830,12 +907,13 @@ function RecipeField({
 }
 
 function RemoveButton({ name, onClick }: { name: string; onClick: () => void }) {
+  const t = useT(STR)
   return (
     <button
       onClick={onClick}
       className="shrink-0 rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 transition-all hover:border-rose-400/40 hover:bg-rose-500/10 hover:text-rose-300"
-      aria-label={`Remove ${name}`}
-      title="Remove meal"
+      aria-label={t.removeNamed(name)}
+      title={t.removeMeal}
     >
       <Trash2 className="size-4" />
     </button>
@@ -854,6 +932,7 @@ function MealEditModal({
   onRemove: () => void
   onClose: () => void
 }) {
+  const t = useT(STR)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -868,25 +947,25 @@ function MealEditModal({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Edit meal"
+      aria-label={t.editMeal}
     >
       <div
         className="glass flex w-full max-w-md flex-col gap-4 rounded-2xl p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Edit meal</p>
+          <p className="text-sm font-semibold text-white">{t.editMeal}</p>
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Close"
+            aria-label={t.close}
           >
             <X className="size-4" />
           </button>
         </div>
 
         <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-          Name
+          {t.name}
           <input
             type="text"
             value={meal.name}
@@ -897,7 +976,7 @@ function MealEditModal({
         </label>
 
         <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-          Recipe link <span className="text-slate-600">(optional)</span>
+          {t.recipeLink} <span className="text-slate-600">{t.optional}</span>
           <RecipeField
             value={meal.recipe}
             name={meal.name}
@@ -905,23 +984,18 @@ function MealEditModal({
           />
         </label>
 
-        <div className="flex flex-col gap-1.5 text-xs text-slate-400">
-          Suitable for
-          <TypeToggle value={meal.type} onChange={(t) => updateMeal(meal.id, { type: t })} />
-        </div>
-
         <div className="mt-1 flex items-center justify-between">
           <button
             onClick={onRemove}
             className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-rose-300 transition-all hover:border-rose-400/40 hover:bg-rose-500/10"
           >
-            <Trash2 className="size-4" /> Remove
+            <Trash2 className="size-4" /> {t.remove}
           </button>
           <button
             onClick={onClose}
             className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition-all hover:brightness-110"
           >
-            Done
+            {t.done}
           </button>
         </div>
       </div>
@@ -940,6 +1014,7 @@ function ConfirmRemoveDialog({
   onConfirm: (dontAskAgain: boolean) => void
   onCancel: () => void
 }) {
+  const t = useT(STR)
   const [dontAsk, setDontAsk] = useState(false)
 
   useEffect(() => {
@@ -956,17 +1031,15 @@ function ConfirmRemoveDialog({
       onClick={onCancel}
       role="alertdialog"
       aria-modal="true"
-      aria-label="Confirm remove"
+      aria-label={t.confirmRemoveAria}
     >
       <div
         className="glass flex w-full max-w-sm flex-col gap-4 rounded-2xl p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div>
-          <p className="text-sm font-semibold text-white">Remove this meal?</p>
-          <p className="mt-1 text-sm text-slate-400">
-            “{name}” will be deleted and cleared from any days it was planned for.
-          </p>
+          <p className="text-sm font-semibold text-white">{t.confirmRemoveTitle}</p>
+          <p className="mt-1 text-sm text-slate-400">{t.confirmRemoveBody(name)}</p>
         </div>
 
         <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-400">
@@ -976,7 +1049,7 @@ function ConfirmRemoveDialog({
             onChange={(e) => setDontAsk(e.target.checked)}
             className="size-4 rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500/30"
           />
-          Don't ask again this session
+          {t.dontAskAgain}
         </label>
 
         <div className="flex items-center justify-end gap-2">
@@ -984,13 +1057,13 @@ function ConfirmRemoveDialog({
             onClick={onCancel}
             className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 transition-all hover:border-white/20 hover:bg-white/10"
           >
-            Cancel
+            {t.cancel}
           </button>
           <button
             onClick={() => onConfirm(dontAsk)}
             className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-rose-500/25 transition-all hover:brightness-110"
           >
-            <Trash2 className="size-4" /> Remove
+            <Trash2 className="size-4" /> {t.remove}
           </button>
         </div>
       </div>
@@ -1004,16 +1077,14 @@ function MealsTab({
   addMeal,
   updateMeal,
   removeMeal,
-  selectClass,
 }: {
   meals: Meal[]
-  addMeal: (name: string, type: MealType, recipe: string) => void
+  addMeal: (name: string, recipe: string) => void
   updateMeal: (id: string, patch: Partial<Meal>) => void
   removeMeal: (id: string) => void
-  selectClass: string
 }) {
+  const t = useT(STR)
   const [draftName, setDraftName] = useState('')
-  const [draftType, setDraftType] = useState<MealType>('both')
   const [draftRecipe, setDraftRecipe] = useState('')
   // Mobile: which meal's edit popup is open. Confirm: which meal awaits a
   // delete confirmation.
@@ -1026,9 +1097,8 @@ function MealsTab({
   )
 
   function submit() {
-    addMeal(draftName, draftType, draftRecipe)
+    addMeal(draftName, draftRecipe)
     setDraftName('')
-    setDraftType('both')
     setDraftRecipe('')
   }
 
@@ -1043,7 +1113,7 @@ function MealsTab({
   }
 
   const sorted = [...meals].sort((a, b) => a.name.localeCompare(b.name))
-  // Unique meal names power the Excel-style autocomplete on the name fields.
+  // Unique meal names power the Excel-style autocomplete on the name field.
   const nameOptions = [...new Set(meals.map((m) => m.name))].sort((a, b) => a.localeCompare(b))
   const editing = editingId ? meals.find((m) => m.id === editingId) : undefined
   const confirming = confirmId ? meals.find((m) => m.id === confirmId) : undefined
@@ -1054,7 +1124,7 @@ function MealsTab({
       {/* relative + raised z-index so the name autocomplete overlays the list below. */}
       <div className="glass relative z-30 mt-6 rounded-2xl p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-          Add a meal
+          {t.addAMeal}
         </p>
         <form
           onSubmit={(e) => {
@@ -1064,45 +1134,31 @@ function MealsTab({
           className="mt-3 flex flex-wrap items-end gap-3"
         >
           <label className="flex flex-1 flex-col gap-1.5 text-xs text-slate-400">
-            Name
+            {t.name}
             <NameAutocomplete
               value={draftName}
               onChange={setDraftName}
               options={nameOptions}
-              placeholder="e.g. Spaghetti bolognese"
+              placeholder={t.namePlaceholder}
               inputClassName="glass w-full min-w-48 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-600 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
           </label>
           <label className="flex flex-1 flex-col gap-1.5 text-xs text-slate-400">
-            Recipe link <span className="text-slate-600">(optional)</span>
+            {t.recipeLink} <span className="text-slate-600">{t.optional}</span>
             <input
               type="text"
               value={draftRecipe}
               onChange={(e) => setDraftRecipe(e.target.value)}
-              placeholder="https://… or an app link"
+              placeholder={t.recipePlaceholder}
               className="glass min-w-48 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-600 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-            Suitable for
-            <select
-              value={draftType}
-              onChange={(e) => setDraftType(e.target.value as MealType)}
-              className={`${selectClass} w-32`}
-            >
-              {MEAL_TYPES.map((t) => (
-                <option key={t.value} value={t.value} className="bg-slate-900">
-                  {t.label}
-                </option>
-              ))}
-            </select>
           </label>
           <button
             type="submit"
             disabled={!draftName.trim()}
             className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Plus className="size-4" /> Add
+            <Plus className="size-4" /> {t.add}
           </button>
         </form>
       </div>
@@ -1111,10 +1167,8 @@ function MealsTab({
       {sorted.length === 0 ? (
         <div className="glass mt-6 rounded-2xl p-8 text-center">
           <UtensilsCrossed className="mx-auto size-8 text-slate-500" />
-          <p className="mt-3 text-sm text-slate-300">No meals yet.</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Add the meals you cook above — they'll show up in the weekly plan's dropdowns.
-          </p>
+          <p className="mt-3 text-sm text-slate-300">{t.noMealsYet}</p>
+          <p className="mt-1 text-xs text-slate-500">{t.noMealsYetHint}</p>
         </div>
       ) : (
         <div className="mt-6 space-y-2">
@@ -1126,7 +1180,7 @@ function MealsTab({
                   type="text"
                   value={m.name}
                   onChange={(e) => updateMeal(m.id, { name: e.target.value })}
-                  aria-label="Meal name"
+                  aria-label={t.mealName}
                   className="glass min-w-48 flex-1 rounded-xl px-3.5 py-2 text-sm text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
                 <RecipeField
@@ -1135,7 +1189,6 @@ function MealsTab({
                   onChange={(v) => updateMeal(m.id, { recipe: v })}
                   className="min-w-48 flex-1"
                 />
-                <TypeToggle value={m.type} onChange={(t) => updateMeal(m.id, { type: t })} />
                 <RemoveButton name={m.name} onClick={() => requestRemove(m.id)} />
               </div>
 
@@ -1148,9 +1201,6 @@ function MealsTab({
                 >
                   <span className="truncate text-sm text-white">{m.name}</span>
                   {m.recipe && <ExternalLink className="size-3.5 shrink-0 text-indigo-300" />}
-                  <span className="ml-auto shrink-0 rounded-md bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-400">
-                    {typeLabel(m.type)}
-                  </span>
                 </button>
                 <RemoveButton name={m.name} onClick={() => requestRemove(m.id)} />
               </div>

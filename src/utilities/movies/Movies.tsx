@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
+import { useT } from '../../i18n/LanguageContext'
 
 /**
  * Movies & TV. A browse-and-watch tool backed by two free services:
@@ -49,18 +50,166 @@ type Feed = 'popular' | 'now_playing' | 'on_the_air' | 'top_rated'
 type View = Feed | 'favourites' | 'watched' | 'settings'
 
 // The three browse feeds per media type. `now_playing`/`on_the_air` are the
-// media-specific middle tab; the other two ids are shared.
-const FEEDS: Record<MediaType, { id: Feed; label: string; path: string }[]> = {
+// media-specific middle tab; the other two ids are shared. Labels are
+// translated at render time by `id` (see STR.feeds), so only ids/paths here.
+const FEEDS: Record<MediaType, { id: Feed; path: string }[]> = {
   movie: [
-    { id: 'popular', label: 'Most Popular', path: '/movie/popular' },
-    { id: 'now_playing', label: 'In Theatres', path: '/movie/now_playing' },
-    { id: 'top_rated', label: 'Top Rated', path: '/movie/top_rated' },
+    { id: 'popular', path: '/movie/popular' },
+    { id: 'now_playing', path: '/movie/now_playing' },
+    { id: 'top_rated', path: '/movie/top_rated' },
   ],
   tv: [
-    { id: 'popular', label: 'Most Popular', path: '/tv/popular' },
-    { id: 'on_the_air', label: 'On Air', path: '/tv/on_the_air' },
-    { id: 'top_rated', label: 'Top Rated', path: '/tv/top_rated' },
+    { id: 'popular', path: '/tv/popular' },
+    { id: 'on_the_air', path: '/tv/on_the_air' },
+    { id: 'top_rated', path: '/tv/top_rated' },
   ],
+}
+
+/** All user-facing strings for this tool, co-located per language. */
+const STR = {
+  en: {
+    // Feed/tab labels, keyed by Feed id.
+    feeds: {
+      popular: 'Most Popular',
+      now_playing: 'In Theatres',
+      on_the_air: 'On Air',
+      top_rated: 'Top Rated',
+    } as Record<Feed, string>,
+    // PosterCard
+    watchTitle: (name: string) => `Watch ${name}`,
+    typeTv: 'TV',
+    typeMovie: 'Movie',
+    removeFav: 'Remove from favourites',
+    addFav: 'Add to favourites',
+    removeHistory: 'Remove from history',
+    percentWatched: (pct: number) => `${pct}% watched`,
+    // SeasonEpisodePicker
+    season: 'Season',
+    episode: 'Episode',
+    specials: 'Specials',
+    seasonN: (n: number) => `Season ${n}`,
+    episodeN: (n: number) => `Episode ${n}`,
+    // DetailCard
+    close: 'Close',
+    seasonsCount: (n: number) => `${n} season${n === 1 ? '' : 's'}`,
+    minutes: (n: number) => `${n} min`,
+    loadingEllipsis: 'Loading…',
+    noSynopsis: 'No synopsis available for this title.',
+    play: 'Play',
+    playTv: (s: number, e: number) => ` S${s} · E${e}`,
+    favourited: 'Favourited',
+    favourite: 'Favourite',
+    // Player
+    seasonEpisode: (s: number, e: number) => `Season ${s} · Episode ${e}`,
+    // Main
+    loadingLibrary: 'Loading your library…',
+    heading: 'Movies & TV',
+    intro:
+      "Browse what's popular, in theatres or on air and top rated, filter by genre or search, then stream it. Favourites and watch history save to your account.",
+    backToBrowsing: 'Back to browsing',
+    apiKeyLabel: 'TMDB API key',
+    apiKeyPlaceholder: 'Paste your TMDB (v3) API key',
+    getKeyAt: 'Get a free key at',
+    apiKeyHelp:
+      '(use the “API Key”, not the read token). It’s saved to your account — only you can read it — and used straight from your browser. Playback is via VidFast and needs no key.',
+    keyIsSet: 'A key is set.',
+    noKeyYetHelp: 'No key set yet — add one to start browsing.',
+    movies: 'Movies',
+    tvShows: 'TV Shows',
+    favourites: 'Favourites',
+    watched: 'Watched',
+    settings: 'Settings',
+    apiSettings: 'API settings',
+    searchTv: 'Search TV shows…',
+    searchMovies: 'Search movies…',
+    searchBtn: 'Search',
+    clear: 'Clear',
+    category: 'Category',
+    allGenres: 'All genres',
+    noKeyYet: 'No TMDB API key yet.',
+    addOneInSettings: 'Add one in Settings',
+    toStartBrowsing: 'to start browsing.',
+    clearHistory: 'Clear watch history',
+    addKeyToBrowse: 'Add your TMDB API key in Settings to browse.',
+    emptyFavourites: 'No favourites yet — tap the heart on any poster to save it here.',
+    emptyWatched: 'Nothing watched yet — anything you open shows up here.',
+    noResultsFor: (q: string) => `No results for “${q}”.`,
+    nothingFound: 'Nothing found.',
+    couldNotLoad: 'Could not load titles.',
+    prev: 'Prev',
+    next: 'Next',
+    page: 'Page',
+    ofPages: (n: number) => `of ${n}`,
+  },
+  nl: {
+    feeds: {
+      popular: 'Populairst',
+      now_playing: 'In de bioscoop',
+      on_the_air: 'Nu op tv',
+      top_rated: 'Best beoordeeld',
+    } as Record<Feed, string>,
+    watchTitle: (name: string) => `${name} bekijken`,
+    typeTv: 'Tv',
+    typeMovie: 'Film',
+    removeFav: 'Uit favorieten verwijderen',
+    addFav: 'Aan favorieten toevoegen',
+    removeHistory: 'Uit geschiedenis verwijderen',
+    percentWatched: (pct: number) => `${pct}% bekeken`,
+    season: 'Seizoen',
+    episode: 'Aflevering',
+    specials: 'Specials',
+    seasonN: (n: number) => `Seizoen ${n}`,
+    episodeN: (n: number) => `Aflevering ${n}`,
+    close: 'Sluiten',
+    seasonsCount: (n: number) => `${n} seizoen${n === 1 ? '' : 'en'}`,
+    minutes: (n: number) => `${n} min`,
+    loadingEllipsis: 'Laden…',
+    noSynopsis: 'Geen synopsis beschikbaar voor deze titel.',
+    play: 'Afspelen',
+    playTv: (s: number, e: number) => ` S${s} · A${e}`,
+    favourited: 'Favoriet',
+    favourite: 'Favoriet maken',
+    seasonEpisode: (s: number, e: number) => `Seizoen ${s} · Aflevering ${e}`,
+    loadingLibrary: 'Je bibliotheek laden…',
+    heading: 'Films & TV',
+    intro:
+      'Blader door wat populair is, in de bioscoop of op tv en best beoordeeld, filter op genre of zoek, en stream het. Favorieten en kijkgeschiedenis worden in je account bewaard.',
+    backToBrowsing: 'Terug naar bladeren',
+    apiKeyLabel: 'TMDB API-sleutel',
+    apiKeyPlaceholder: 'Plak je TMDB (v3) API-sleutel',
+    getKeyAt: 'Haal een gratis sleutel op bij',
+    apiKeyHelp:
+      '(gebruik de “API Key”, niet het read-token). Hij wordt in je account bewaard — alleen jij kunt hem lezen — en rechtstreeks vanuit je browser gebruikt. Afspelen verloopt via VidFast en vereist geen sleutel.',
+    keyIsSet: 'Er is een sleutel ingesteld.',
+    noKeyYetHelp: 'Nog geen sleutel ingesteld — voeg er een toe om te beginnen bladeren.',
+    movies: 'Films',
+    tvShows: 'Tv-series',
+    favourites: 'Favorieten',
+    watched: 'Bekeken',
+    settings: 'Instellingen',
+    apiSettings: 'API-instellingen',
+    searchTv: 'Tv-series zoeken…',
+    searchMovies: 'Films zoeken…',
+    searchBtn: 'Zoeken',
+    clear: 'Wissen',
+    category: 'Categorie',
+    allGenres: 'Alle genres',
+    noKeyYet: 'Nog geen TMDB API-sleutel.',
+    addOneInSettings: 'Voeg er een toe bij Instellingen',
+    toStartBrowsing: 'om te beginnen bladeren.',
+    clearHistory: 'Kijkgeschiedenis wissen',
+    addKeyToBrowse: 'Voeg je TMDB API-sleutel toe bij Instellingen om te bladeren.',
+    emptyFavourites:
+      'Nog geen favorieten — tik op het hartje van een poster om het hier op te slaan.',
+    emptyWatched: 'Nog niets bekeken — alles wat je opent verschijnt hier.',
+    noResultsFor: (q: string) => `Geen resultaten voor “${q}”.`,
+    nothingFound: 'Niets gevonden.',
+    couldNotLoad: 'Kon de titels niet laden.',
+    prev: 'Vorige',
+    next: 'Volgende',
+    page: 'Pagina',
+    ofPages: (n: number) => `van ${n}`,
+  },
 }
 
 // Raw TMDB list item — movies and TV use different field names for the same
@@ -180,9 +329,10 @@ function PosterCard({
   onToggleFav: () => void
   onRemove?: () => void
 }) {
+  const t = useT(STR)
   return (
     <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] transition-all duration-200 hover:border-white/20">
-      <button onClick={onOpen} className="block w-full text-left" title={`Watch ${title.title}`}>
+      <button onClick={onOpen} className="block w-full text-left" title={t.watchTitle(title.title)}>
         <div className="aspect-[2/3] w-full overflow-hidden bg-slate-800">
           {title.poster_path ? (
             <img
@@ -208,14 +358,14 @@ function PosterCard({
 
       {showType && (
         <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur">
-          {title.mediaType === 'tv' ? 'TV' : 'Movie'}
+          {title.mediaType === 'tv' ? t.typeTv : t.typeMovie}
         </span>
       )}
 
       <div className="absolute right-2 top-2 flex flex-col gap-1.5">
         <button
           onClick={onToggleFav}
-          title={isFav ? 'Remove from favourites' : 'Add to favourites'}
+          title={isFav ? t.removeFav : t.addFav}
           className={`flex size-8 items-center justify-center rounded-full backdrop-blur transition-all duration-200 ${
             isFav
               ? 'bg-rose-500/90 text-white'
@@ -227,7 +377,7 @@ function PosterCard({
         {onRemove && (
           <button
             onClick={onRemove}
-            title="Remove from history"
+            title={t.removeHistory}
             className="flex size-8 items-center justify-center rounded-full bg-black/50 text-white/70 opacity-0 backdrop-blur transition-all duration-200 hover:bg-black/70 hover:text-white group-hover:opacity-100"
           >
             <X className="size-4" />
@@ -239,7 +389,7 @@ function PosterCard({
       {progress != null && (
         <div
           className="absolute inset-x-0 bottom-0 h-1.5 bg-black/50"
-          title={`${Math.round(progress * 100)}% watched`}
+          title={t.percentWatched(Math.round(progress * 100))}
         >
           <div
             className="h-full bg-gradient-to-r from-indigo-500 to-violet-500"
@@ -293,12 +443,13 @@ function SeasonEpisodePicker({
   onSeason: (s: number) => void
   onEpisode: (e: number) => void
 }) {
+  const t = useT(STR)
   const current = seasons.find((s) => s.season_number === season)
   const episodeCount = current?.episode_count ?? Math.max(episode, 1)
   return (
     <div className="flex flex-wrap gap-3">
       <label className="flex flex-col gap-1 text-[11px] text-slate-400">
-        Season
+        {t.season}
         <select
           value={season}
           onChange={(e) => onSeason(Number(e.target.value))}
@@ -306,18 +457,18 @@ function SeasonEpisodePicker({
         >
           {seasons.length === 0 && (
             <option value={season} className="bg-slate-900">
-              Season {season}
+              {t.seasonN(season)}
             </option>
           )}
           {seasons.map((s) => (
             <option key={s.season_number} value={s.season_number} className="bg-slate-900">
-              {s.season_number === 0 ? s.name || 'Specials' : `Season ${s.season_number}`}
+              {s.season_number === 0 ? s.name || t.specials : t.seasonN(s.season_number)}
             </option>
           ))}
         </select>
       </label>
       <label className="flex flex-col gap-1 text-[11px] text-slate-400">
-        Episode
+        {t.episode}
         <select
           value={episode}
           onChange={(e) => onEpisode(Number(e.target.value))}
@@ -325,7 +476,7 @@ function SeasonEpisodePicker({
         >
           {Array.from({ length: episodeCount }, (_, i) => i + 1).map((n) => (
             <option key={n} value={n} className="bg-slate-900">
-              Episode {n}
+              {t.episodeN(n)}
             </option>
           ))}
         </select>
@@ -355,6 +506,7 @@ function DetailCard({
   onPlay: (season: number, episode: number) => void
   onClose: () => void
 }) {
+  const t = useT(STR)
   const isTv = title.mediaType === 'tv'
   const [details, setDetails] = useState<Details | null>(null)
   const [loadingDetails, setLoadingDetails] = useState(true)
@@ -379,10 +531,8 @@ function DetailCard({
   const runtimeMin = isTv ? details?.episode_run_time?.[0] : details?.runtime
   const meta = [
     year(title.date),
-    isTv && details?.number_of_seasons
-      ? `${details.number_of_seasons} season${details.number_of_seasons === 1 ? '' : 's'}`
-      : null,
-    runtimeMin ? `${runtimeMin} min` : null,
+    isTv && details?.number_of_seasons ? t.seasonsCount(details.number_of_seasons) : null,
+    runtimeMin ? t.minutes(runtimeMin) : null,
   ].filter(Boolean)
 
   return createPortal(
@@ -412,7 +562,7 @@ function DetailCard({
 
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t.close}
           className="absolute left-4 top-4 z-20 flex size-9 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur transition-colors hover:bg-black/70 hover:text-white"
         >
           <X className="size-5" />
@@ -425,7 +575,7 @@ function DetailCard({
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-slate-300">
             <span className="rounded-md bg-white/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide">
-              {isTv ? 'TV' : 'Movie'}
+              {isTv ? t.typeTv : t.typeMovie}
             </span>
             {meta.map((m) => (
               <span key={m as string}>{m}</span>
@@ -452,8 +602,8 @@ function DetailCard({
 
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-200">
             {loadingDetails
-              ? 'Loading…'
-              : details?.overview || 'No synopsis available for this title.'}
+              ? t.loadingEllipsis
+              : details?.overview || t.noSynopsis}
           </p>
 
           {isTv && (
@@ -476,7 +626,8 @@ function DetailCard({
               onClick={() => onPlay(season, episode)}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:brightness-110"
             >
-              <Play className="size-4 fill-current" /> Play{isTv ? ` S${season} · E${episode}` : ''}
+              <Play className="size-4 fill-current" /> {t.play}
+              {isTv ? t.playTv(season, episode) : ''}
             </button>
             <button
               onClick={onToggleFav}
@@ -487,7 +638,7 @@ function DetailCard({
               }`}
             >
               <Heart className={`size-4 ${isFav ? 'fill-current' : ''}`} />
-              {isFav ? 'Favourited' : 'Favourite'}
+              {isFav ? t.favourited : t.favourite}
             </button>
           </div>
         </div>
@@ -527,6 +678,7 @@ function Player({
   onProgress: (fraction: number, seconds: number) => void
   onClose: () => void
 }) {
+  const t = useT(STR)
   const isTv = title.mediaType === 'tv'
   useOverlayChrome(onClose)
 
@@ -607,14 +759,14 @@ function Player({
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">{title.title}</p>
             <p className="text-xs text-slate-500">
-              {isTv ? `Season ${season} · Episode ${episode}` : year(title.date)}
+              {isTv ? t.seasonEpisode(season, episode) : year(title.date)}
             </p>
           </div>
           <button
             onClick={onClose}
             className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
           >
-            <X className="size-4" /> Close
+            <X className="size-4" /> {t.close}
           </button>
         </div>
         {/* Cap the player to the viewport height so its controls aren't clipped
@@ -640,6 +792,7 @@ function Player({
 // --- Main ----------------------------------------------------------------
 
 export function Movies() {
+  const t = useT(STR)
   const { config, setConfig, loading, saving } = useUtilityConfig<MoviesConfig>('movies', DEFAULTS)
   const key = config.apiKey.trim()
   const hasKey = key.length > 0
@@ -716,12 +869,12 @@ export function Movies() {
       // TMDB caps paging at 500 pages regardless of total_results.
       setTotalPages(Math.min(500, Math.max(1, data.total_pages ?? 1)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load titles.')
+      setError(e instanceof Error ? e.message : t.couldNotLoad)
       setResults([])
     } finally {
       setBusy(false)
     }
-  }, [hasKey, isFeed, mediaType, view, submittedQuery, genreId, key, page])
+  }, [hasKey, isFeed, mediaType, view, submittedQuery, genreId, key, page, t])
 
   useEffect(() => {
     // fetchResults sets loading/error state; the synchronous setState is
@@ -835,7 +988,7 @@ export function Movies() {
   }
 
   if (loading) {
-    return <p className="animate-pulse text-slate-400">Loading your library…</p>
+    return <p className="animate-pulse text-slate-400">{t.loadingLibrary}</p>
   }
 
   const tabClass = (active: boolean) =>
@@ -860,23 +1013,20 @@ export function Movies() {
 
   const emptyMessage =
     view === 'favourites'
-      ? 'No favourites yet — tap the heart on any poster to save it here.'
+      ? t.emptyFavourites
       : view === 'watched'
-        ? 'Nothing watched yet — anything you open shows up here.'
+        ? t.emptyWatched
         : submittedQuery
-          ? `No results for “${submittedQuery}”.`
-          : 'Nothing found.'
+          ? t.noResultsFor(submittedQuery)
+          : t.nothingFound
 
   return (
     <div className="max-w-6xl animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Movies &amp; TV</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t.heading}</h1>
         <SaveStatus saving={saving} />
       </div>
-      <p className="mt-2 text-slate-400">
-        Browse what's popular, in theatres or on air and top rated, filter by genre or search, then
-        stream it. Favourites and watch history save to your account.
-      </p>
+      <p className="mt-2 text-slate-400">{t.intro}</p>
 
       {/* Settings view — the API key lives here, out of the way of browsing. */}
       {view === 'settings' ? (
@@ -884,24 +1034,24 @@ export function Movies() {
           <div className="mt-6 flex">
             <button className={tabClass(false)} onClick={() => selectView('popular')}>
               <span className="inline-flex items-center gap-1.5">
-                <ArrowLeft className="size-4" /> Back to browsing
+                <ArrowLeft className="size-4" /> {t.backToBrowsing}
               </span>
             </button>
           </div>
           <div className="glass mt-4 max-w-xl rounded-2xl p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              TMDB API key
+              {t.apiKeyLabel}
             </p>
             <input
               type="password"
               value={config.apiKey}
               onChange={(e) => setConfig({ apiKey: e.target.value })}
-              placeholder="Paste your TMDB (v3) API key"
+              placeholder={t.apiKeyPlaceholder}
               autoComplete="off"
               className="glass mt-2.5 w-full rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
             <p className="mt-2 text-xs text-slate-500">
-              Get a free key at{' '}
+              {t.getKeyAt}{' '}
               <a
                 href="https://www.themoviedb.org/settings/api"
                 target="_blank"
@@ -910,16 +1060,15 @@ export function Movies() {
               >
                 themoviedb.org
               </a>{' '}
-              (use the “API Key”, not the read token). It's saved to your account — only you can read
-              it — and used straight from your browser. Playback is via VidFast and needs no key.
+              {t.apiKeyHelp}
             </p>
             <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
               {hasKey ? (
                 <>
-                  <Check className="size-3.5 text-emerald-400" /> A key is set.
+                  <Check className="size-3.5 text-emerald-400" /> {t.keyIsSet}
                 </>
               ) : (
-                'No key set yet — add one to start browsing.'
+                t.noKeyYetHelp
               )}
             </p>
           </div>
@@ -930,12 +1079,12 @@ export function Movies() {
           <div className="mt-6 inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
             <button className={toggleClass(mediaType === 'movie')} onClick={() => switchMedia('movie')}>
               <span className="inline-flex items-center gap-1.5">
-                <Film className="size-4" /> Movies
+                <Film className="size-4" /> {t.movies}
               </span>
             </button>
             <button className={toggleClass(mediaType === 'tv')} onClick={() => switchMedia('tv')}>
               <span className="inline-flex items-center gap-1.5">
-                <Tv className="size-4" /> TV Shows
+                <Tv className="size-4" /> {t.tvShows}
               </span>
             </button>
           </div>
@@ -944,7 +1093,7 @@ export function Movies() {
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {FEEDS[mediaType].map((f) => (
               <button key={f.id} className={tabClass(view === f.id)} onClick={() => selectView(f.id)}>
-                {f.label}
+                {t.feeds[f.id]}
               </button>
             ))}
             <button
@@ -952,7 +1101,7 @@ export function Movies() {
               onClick={() => selectView('favourites')}
             >
               <span className="inline-flex items-center gap-1.5">
-                <Heart className="size-4" /> Favourites
+                <Heart className="size-4" /> {t.favourites}
                 {config.favourites.length > 0 && (
                   <span className="text-xs opacity-70">{config.favourites.length}</span>
                 )}
@@ -960,7 +1109,7 @@ export function Movies() {
             </button>
             <button className={tabClass(view === 'watched')} onClick={() => selectView('watched')}>
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="size-4" /> Watched
+                <Clock className="size-4" /> {t.watched}
                 {config.watched.length > 0 && (
                   <span className="text-xs opacity-70">{config.watched.length}</span>
                 )}
@@ -969,10 +1118,10 @@ export function Movies() {
             <button
               className="ml-auto rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 transition-all duration-200 hover:border-white/20 hover:bg-white/10"
               onClick={() => selectView('settings')}
-              title="API settings"
+              title={t.apiSettings}
             >
               <span className="inline-flex items-center gap-1.5">
-                <Settings className="size-4" /> Settings
+                <Settings className="size-4" /> {t.settings}
               </span>
             </button>
           </div>
@@ -984,7 +1133,7 @@ export function Movies() {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={mediaType === 'tv' ? 'Search TV shows…' : 'Search movies…'}
+                  placeholder={mediaType === 'tv' ? t.searchTv : t.searchMovies}
                   disabled={!hasKey}
                   className="glass min-w-0 flex-1 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
                 />
@@ -993,7 +1142,7 @@ export function Movies() {
                   disabled={!hasKey}
                   className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition-colors hover:bg-white/10 disabled:opacity-50"
                 >
-                  Search
+                  {t.searchBtn}
                 </button>
                 {submittedQuery && (
                   <button
@@ -1005,12 +1154,12 @@ export function Movies() {
                     }}
                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
                   >
-                    Clear
+                    {t.clear}
                   </button>
                 )}
               </form>
               <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-                Category
+                {t.category}
                 <select
                   value={genreId ?? ''}
                   disabled={!hasKey || !!submittedQuery}
@@ -1021,7 +1170,7 @@ export function Movies() {
                   className="glass rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
                 >
                   <option value="" className="bg-slate-900">
-                    All genres
+                    {t.allGenres}
                   </option>
                   {genres.map((g) => (
                     <option key={g.id} value={g.id} className="bg-slate-900">
@@ -1035,11 +1184,11 @@ export function Movies() {
 
           {!hasKey && (
             <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
-              No TMDB API key yet.{' '}
+              {t.noKeyYet}{' '}
               <button onClick={() => selectView('settings')} className="font-semibold underline">
-                Add one in Settings
+                {t.addOneInSettings}
               </button>{' '}
-              to start browsing.
+              {t.toStartBrowsing}
             </p>
           )}
 
@@ -1055,7 +1204,7 @@ export function Movies() {
                 onClick={clearWatched}
                 className="text-xs text-slate-500 transition-colors hover:text-rose-300"
               >
-                Clear watch history
+                {t.clearHistory}
               </button>
             </div>
           )}
@@ -1063,10 +1212,10 @@ export function Movies() {
           {/* Grid */}
           <div className="mt-6">
             {busy ? (
-              <p className="animate-pulse text-slate-400">Loading…</p>
+              <p className="animate-pulse text-slate-400">{t.loadingEllipsis}</p>
             ) : showingList.length === 0 ? (
               <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center text-sm text-slate-400">
-                {hasKey ? emptyMessage : 'Add your TMDB API key in Settings to browse.'}
+                {hasKey ? emptyMessage : t.addKeyToBrowse}
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -1094,7 +1243,7 @@ export function Movies() {
                 disabled={page <= 1}
                 className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-slate-200 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <ChevronLeft className="size-4" /> Prev
+                <ChevronLeft className="size-4" /> {t.prev}
               </button>
               <form
                 onSubmit={(e) => {
@@ -1104,7 +1253,7 @@ export function Movies() {
                 }}
                 className="flex items-center gap-1.5 tabular-nums text-slate-400"
               >
-                <label htmlFor="movies-page">Page</label>
+                <label htmlFor="movies-page">{t.page}</label>
                 <input
                   id="movies-page"
                   name="page"
@@ -1120,14 +1269,14 @@ export function Movies() {
                   }}
                   className="glass w-16 rounded-lg px-2 py-1 text-center text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
-                of {totalPages}
+                {t.ofPages(totalPages)}
               </form>
               <button
                 onClick={() => goToPage(page + 1)}
                 disabled={page >= totalPages}
                 className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-slate-200 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Next <ChevronRight className="size-4" />
+                {t.next} <ChevronRight className="size-4" />
               </button>
             </div>
           )}

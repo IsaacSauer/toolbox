@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
+import { useT } from '../../i18n/LanguageContext'
 
 /**
  * Example utility demonstrating the groundwork pattern:
@@ -18,6 +19,27 @@ const CASE_MODES: { id: CaseMode; label: string }[] = [
   { id: 'kebab', label: 'kebab-case' },
   { id: 'snake', label: 'snake_case' },
 ]
+
+const STR = {
+  en: {
+    loading: 'Loading your settings…',
+    title: 'Text Case Converter',
+    intro:
+      'Convert text between case styles. With an account, your selected case and options are remembered.',
+    autoTrim: 'Trim whitespace automatically',
+    placeholder: 'Type or paste text here…',
+    result: 'Result',
+  },
+  nl: {
+    loading: 'Je instellingen laden…',
+    title: 'Tekstcase-omzetter',
+    intro:
+      'Zet tekst om tussen verschillende hoofdletterstijlen. Met een account worden je gekozen stijl en opties onthouden.',
+    autoTrim: 'Spaties automatisch bijsnijden',
+    placeholder: 'Typ of plak hier tekst…',
+    result: 'Resultaat',
+  },
+}
 
 function convert(text: string, mode: CaseMode, trim: boolean): string {
   const input = trim ? text.trim() : text
@@ -41,21 +63,19 @@ export function TextCaseConverter() {
     autoTrim: true,
   })
   const [text, setText] = useState('')
+  const t = useT(STR)
 
   if (loading) {
-    return <p className="animate-pulse text-slate-400">Loading your settings…</p>
+    return <p className="animate-pulse text-slate-400">{t.loading}</p>
   }
 
   return (
     <div className="animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Text Case Converter</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
         <SaveStatus saving={saving} />
       </div>
-      <p className="mt-2 text-slate-400">
-        Convert text between case styles. With an account, your selected case and options are
-        remembered.
-      </p>
+      <p className="mt-2 text-slate-400">{t.intro}</p>
 
       <div className="mt-8 flex flex-wrap gap-2">
         {CASE_MODES.map((m) => (
@@ -80,20 +100,20 @@ export function TextCaseConverter() {
           onChange={(e) => setConfig({ autoTrim: e.target.checked })}
           className="size-4 accent-indigo-500"
         />
-        Trim whitespace automatically
+        {t.autoTrim}
       </label>
 
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={5}
-        placeholder="Type or paste text here…"
+        placeholder={t.placeholder}
         className="glass mt-8 w-full resize-y rounded-2xl p-4 text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
       />
 
       <div className="glass mt-4 rounded-2xl p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-          Result
+          {t.result}
         </p>
         <p className="mt-2 whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-white">
           {text ? convert(text, config.mode, config.autoTrim) : '—'}

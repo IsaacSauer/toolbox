@@ -12,6 +12,195 @@ import { useUtilityConfig } from '../../hooks/useUtilityConfig'
 import { useAuth } from '../../auth/auth-context'
 import { SaveStatus } from '../../components/SaveStatus'
 import { supabase } from '../../lib/supabase'
+import { useT, useLang } from '../../i18n/LanguageContext'
+
+const STR = {
+  en: {
+    title: 'QR Code Generator',
+    intro:
+      'Create styled QR codes for links, WiFi, contacts and more. With an account, your design preferences are remembered.',
+    loading: 'Loading your settings…',
+    types: {
+      url: 'URL',
+      text: 'Text',
+      email: 'Email',
+      phone: 'Phone',
+      sms: 'SMS',
+      wifi: 'WiFi',
+      vcard: 'vCard',
+      whatsapp: 'WhatsApp',
+      payment: 'Payment',
+    } as Record<ContentType, string>,
+    paymentMethods: {
+      sepa: 'SEPA transfer',
+      paypal: 'PayPal.me',
+    } as Record<PaymentMethod, string>,
+    dotTypes: {
+      square: 'Square',
+      rounded: 'Rounded',
+      dots: 'Dots',
+      classy: 'Classy',
+      'classy-rounded': 'Classy rounded',
+      'extra-rounded': 'Extra rounded',
+    } as Record<DotType, string>,
+    cornerSquareTypes: {
+      square: 'Square',
+      'extra-rounded': 'Rounded',
+      dot: 'Dot',
+    } as Record<CornerSquareType, string>,
+    cornerDotTypes: {
+      square: 'Square',
+      dot: 'Dot',
+    } as Record<CornerDotType, string>,
+    // Field labels
+    websiteUrl: 'Website URL',
+    textLabel: 'Text',
+    textPlaceholder: 'Any text to encode…',
+    emailAddress: 'Email address',
+    subjectOptional: 'Subject (optional)',
+    messageOptional: 'Message (optional)',
+    phoneNumber: 'Phone number',
+    networkName: 'Network name (SSID)',
+    password: 'Password',
+    encryption: 'Encryption',
+    encNone: 'None',
+    hiddenNetwork: 'Hidden network',
+    firstName: 'First name',
+    lastName: 'Last name',
+    phone: 'Phone',
+    email: 'Email',
+    company: 'Company',
+    website: 'Website',
+    whatsappNumberLabel: 'WhatsApp number (with country code)',
+    prefilledMessageOptional: 'Pre-filled message (optional)',
+    paymentMethodLabel: 'Payment method',
+    beneficiaryName: 'Beneficiary name',
+    iban: 'IBAN',
+    bicOptional: 'BIC (optional)',
+    amountEurOptional: 'Amount in EUR (optional)',
+    epcNote:
+      'Generates an EPC QR code — scannable from most European banking apps to pre-fill a SEPA transfer.',
+    paypalUsername: 'PayPal.me username',
+    // Design
+    design: 'Design',
+    dotStyle: 'Dot style',
+    cornerFrame: 'Corner frame',
+    cornerDot: 'Corner dot',
+    codeColor: 'Code color',
+    background: 'Background',
+    transparentBackground: 'Transparent background',
+    size: (px: number) => `Size — ${px}px`,
+    errorCorrection: 'Error correction',
+    centerLogoOptional: 'Center logo (optional)',
+    remove: 'Remove',
+    // Preview
+    preview: 'Preview',
+    fillFields: 'Fill in the fields to generate your QR code.',
+    // Saved codes
+    savedCodes: 'Saved codes',
+    signIn: 'Sign in',
+    signInToSaveSuffix: ' to save creations and reload them later on any device.',
+    nameThisQr: 'Name this QR code…',
+    save: 'Save',
+    saving: 'Saving…',
+    nothingSaved: 'Nothing saved yet. Save a creation to reload it later on any device.',
+    loadThisQr: 'Load this QR code',
+    delete: 'Delete',
+  },
+  nl: {
+    title: 'QR-codegenerator',
+    intro:
+      'Maak gestileerde QR-codes voor links, wifi, contacten en meer. Met een account worden je ontwerpvoorkeuren onthouden.',
+    loading: 'Je instellingen worden geladen…',
+    types: {
+      url: 'URL',
+      text: 'Tekst',
+      email: 'E-mail',
+      phone: 'Telefoon',
+      sms: 'SMS',
+      wifi: 'Wifi',
+      vcard: 'vCard',
+      whatsapp: 'WhatsApp',
+      payment: 'Betaling',
+    } as Record<ContentType, string>,
+    paymentMethods: {
+      sepa: 'SEPA-overschrijving',
+      paypal: 'PayPal.me',
+    } as Record<PaymentMethod, string>,
+    dotTypes: {
+      square: 'Vierkant',
+      rounded: 'Afgerond',
+      dots: 'Stippen',
+      classy: 'Chic',
+      'classy-rounded': 'Chic afgerond',
+      'extra-rounded': 'Extra afgerond',
+    } as Record<DotType, string>,
+    cornerSquareTypes: {
+      square: 'Vierkant',
+      'extra-rounded': 'Afgerond',
+      dot: 'Stip',
+    } as Record<CornerSquareType, string>,
+    cornerDotTypes: {
+      square: 'Vierkant',
+      dot: 'Stip',
+    } as Record<CornerDotType, string>,
+    // Field labels
+    websiteUrl: 'Website-URL',
+    textLabel: 'Tekst',
+    textPlaceholder: 'Tekst om te coderen…',
+    emailAddress: 'E-mailadres',
+    subjectOptional: 'Onderwerp (optioneel)',
+    messageOptional: 'Bericht (optioneel)',
+    phoneNumber: 'Telefoonnummer',
+    networkName: 'Netwerknaam (SSID)',
+    password: 'Wachtwoord',
+    encryption: 'Versleuteling',
+    encNone: 'Geen',
+    hiddenNetwork: 'Verborgen netwerk',
+    firstName: 'Voornaam',
+    lastName: 'Achternaam',
+    phone: 'Telefoon',
+    email: 'E-mail',
+    company: 'Bedrijf',
+    website: 'Website',
+    whatsappNumberLabel: 'WhatsApp-nummer (met landcode)',
+    prefilledMessageOptional: 'Vooraf ingevuld bericht (optioneel)',
+    paymentMethodLabel: 'Betaalmethode',
+    beneficiaryName: 'Naam begunstigde',
+    iban: 'IBAN',
+    bicOptional: 'BIC (optioneel)',
+    amountEurOptional: 'Bedrag in EUR (optioneel)',
+    epcNote:
+      'Genereert een EPC-QR-code — scanbaar met de meeste Europese bankapps om een SEPA-overschrijving vooraf in te vullen.',
+    paypalUsername: 'PayPal.me-gebruikersnaam',
+    // Design
+    design: 'Ontwerp',
+    dotStyle: 'Stijl van stippen',
+    cornerFrame: 'Hoekkader',
+    cornerDot: 'Hoekstip',
+    codeColor: 'Codekleur',
+    background: 'Achtergrond',
+    transparentBackground: 'Transparante achtergrond',
+    size: (px: number) => `Grootte — ${px}px`,
+    errorCorrection: 'Foutcorrectie',
+    centerLogoOptional: 'Logo in midden (optioneel)',
+    remove: 'Verwijderen',
+    // Preview
+    preview: 'Voorbeeld',
+    fillFields: 'Vul de velden in om je QR-code te genereren.',
+    // Saved codes
+    savedCodes: 'Opgeslagen codes',
+    signIn: 'Aanmelden',
+    signInToSaveSuffix: ' om creaties op te slaan en ze later op elk apparaat opnieuw te laden.',
+    nameThisQr: 'Geef deze QR-code een naam…',
+    save: 'Opslaan',
+    saving: 'Opslaan…',
+    nothingSaved:
+      'Nog niets opgeslagen. Sla een creatie op om ze later op elk apparaat opnieuw te laden.',
+    loadThisQr: 'Deze QR-code laden',
+    delete: 'Verwijderen',
+  },
+}
 
 /**
  * QR code generator inspired by qr.io: encodes several content types
@@ -32,44 +221,27 @@ type ContentType =
   | 'whatsapp'
   | 'payment'
 
-const CONTENT_TYPES: { id: ContentType; label: string }[] = [
-  { id: 'url', label: 'URL' },
-  { id: 'text', label: 'Text' },
-  { id: 'email', label: 'Email' },
-  { id: 'phone', label: 'Phone' },
-  { id: 'sms', label: 'SMS' },
-  { id: 'wifi', label: 'WiFi' },
-  { id: 'vcard', label: 'vCard' },
-  { id: 'whatsapp', label: 'WhatsApp' },
-  { id: 'payment', label: 'Payment' },
+const CONTENT_TYPES: ContentType[] = [
+  'url',
+  'text',
+  'email',
+  'phone',
+  'sms',
+  'wifi',
+  'vcard',
+  'whatsapp',
+  'payment',
 ]
 
-const PAYMENT_METHODS: { id: PaymentMethod; label: string }[] = [
-  { id: 'sepa', label: 'SEPA transfer' },
-  { id: 'paypal', label: 'PayPal.me' },
-]
+const PAYMENT_METHODS: PaymentMethod[] = ['sepa', 'paypal']
 
 type PaymentMethod = 'sepa' | 'paypal'
 
-const DOT_TYPES: { id: DotType; label: string }[] = [
-  { id: 'square', label: 'Square' },
-  { id: 'rounded', label: 'Rounded' },
-  { id: 'dots', label: 'Dots' },
-  { id: 'classy', label: 'Classy' },
-  { id: 'classy-rounded', label: 'Classy rounded' },
-  { id: 'extra-rounded', label: 'Extra rounded' },
-]
+const DOT_TYPES: DotType[] = ['square', 'rounded', 'dots', 'classy', 'classy-rounded', 'extra-rounded']
 
-const CORNER_SQUARE_TYPES: { id: CornerSquareType; label: string }[] = [
-  { id: 'square', label: 'Square' },
-  { id: 'extra-rounded', label: 'Rounded' },
-  { id: 'dot', label: 'Dot' },
-]
+const CORNER_SQUARE_TYPES: CornerSquareType[] = ['square', 'extra-rounded', 'dot']
 
-const CORNER_DOT_TYPES: { id: CornerDotType; label: string }[] = [
-  { id: 'square', label: 'Square' },
-  { id: 'dot', label: 'Dot' },
-]
+const CORNER_DOT_TYPES: CornerDotType[] = ['square', 'dot']
 
 const ERROR_LEVELS: { id: ErrorCorrectionLevel; label: string }[] = [
   { id: 'L', label: 'L · 7%' },
@@ -300,6 +472,8 @@ export function QRCodeGenerator() {
     errorLevel: 'M' as ErrorCorrectionLevel,
   })
   const { user } = useAuth()
+  const t = useT(STR)
+  const { locale } = useLang()
   const [fields, setFields] = useState<ContentFields>(EMPTY_FIELDS)
   const [logo, setLogo] = useState<string | null>(null)
   const [saved, setSaved] = useState<SavedQr[]>([])
@@ -402,7 +576,7 @@ export function QRCodeGenerator() {
   }
 
   if (loading) {
-    return <p className="animate-pulse text-slate-400">Loading your settings…</p>
+    return <p className="animate-pulse text-slate-400">{t.loading}</p>
   }
 
   const c = config.contentType
@@ -410,35 +584,32 @@ export function QRCodeGenerator() {
   return (
     <div className="animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">QR Code Generator</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
         <SaveStatus saving={saving} />
       </div>
-      <p className="mt-2 text-slate-400">
-        Create styled QR codes for links, WiFi, contacts and more. With an account, your design
-        preferences are remembered.
-      </p>
+      <p className="mt-2 text-slate-400">{t.intro}</p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_minmax(280px,360px)]">
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
-            {CONTENT_TYPES.map((t) => (
+            {CONTENT_TYPES.map((id) => (
               <button
-                key={t.id}
-                onClick={() => setConfig({ contentType: t.id })}
+                key={id}
+                onClick={() => setConfig({ contentType: id })}
                 className={`rounded-xl px-3.5 py-1.5 text-sm transition-all duration-200 ${
-                  c === t.id
+                  c === id
                     ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25'
                     : 'border border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                {t.label}
+                {t.types[id]}
               </button>
             ))}
           </div>
 
           <div className="mt-6 space-y-4">
             {c === 'url' && (
-              <Field label="Website URL">
+              <Field label={t.websiteUrl}>
                 <input
                   type="url"
                   value={fields.url}
@@ -450,12 +621,12 @@ export function QRCodeGenerator() {
             )}
 
             {c === 'text' && (
-              <Field label="Text">
+              <Field label={t.textLabel}>
                 <textarea
                   value={fields.text}
                   onChange={(e) => setField('text', e.target.value)}
                   rows={4}
-                  placeholder="Any text to encode…"
+                  placeholder={t.textPlaceholder}
                   className={`${inputClass} resize-y`}
                 />
               </Field>
@@ -463,7 +634,7 @@ export function QRCodeGenerator() {
 
             {c === 'email' && (
               <>
-                <Field label="Email address">
+                <Field label={t.emailAddress}>
                   <input
                     type="email"
                     value={fields.emailTo}
@@ -472,14 +643,14 @@ export function QRCodeGenerator() {
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Subject (optional)">
+                <Field label={t.subjectOptional}>
                   <input
                     value={fields.emailSubject}
                     onChange={(e) => setField('emailSubject', e.target.value)}
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Message (optional)">
+                <Field label={t.messageOptional}>
                   <textarea
                     value={fields.emailBody}
                     onChange={(e) => setField('emailBody', e.target.value)}
@@ -491,7 +662,7 @@ export function QRCodeGenerator() {
             )}
 
             {c === 'phone' && (
-              <Field label="Phone number">
+              <Field label={t.phoneNumber}>
                 <input
                   type="tel"
                   value={fields.phone}
@@ -504,7 +675,7 @@ export function QRCodeGenerator() {
 
             {c === 'sms' && (
               <>
-                <Field label="Phone number">
+                <Field label={t.phoneNumber}>
                   <input
                     type="tel"
                     value={fields.smsNumber}
@@ -513,7 +684,7 @@ export function QRCodeGenerator() {
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Message (optional)">
+                <Field label={t.messageOptional}>
                   <textarea
                     value={fields.smsMessage}
                     onChange={(e) => setField('smsMessage', e.target.value)}
@@ -526,21 +697,21 @@ export function QRCodeGenerator() {
 
             {c === 'wifi' && (
               <>
-                <Field label="Network name (SSID)">
+                <Field label={t.networkName}>
                   <input
                     value={fields.wifiSsid}
                     onChange={(e) => setField('wifiSsid', e.target.value)}
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Password">
+                <Field label={t.password}>
                   <input
                     value={fields.wifiPassword}
                     onChange={(e) => setField('wifiPassword', e.target.value)}
                     className={inputClass}
                   />
                 </Field>
-                <Field group label="Encryption">
+                <Field group label={t.encryption}>
                   <div className="flex gap-2">
                     {(['WPA', 'WEP', 'nopass'] as const).map((enc) => (
                       <button
@@ -552,7 +723,7 @@ export function QRCodeGenerator() {
                             : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
-                        {enc === 'nopass' ? 'None' : enc}
+                        {enc === 'nopass' ? t.encNone : enc}
                       </button>
                     ))}
                   </div>
@@ -564,7 +735,7 @@ export function QRCodeGenerator() {
                     onChange={(e) => setField('wifiHidden', e.target.checked)}
                     className="size-4 accent-indigo-500"
                   />
-                  Hidden network
+                  {t.hiddenNetwork}
                 </label>
               </>
             )}
@@ -572,21 +743,21 @@ export function QRCodeGenerator() {
             {c === 'vcard' && (
               <>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="First name">
+                  <Field label={t.firstName}>
                     <input
                       value={fields.vcardFirstName}
                       onChange={(e) => setField('vcardFirstName', e.target.value)}
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Last name">
+                  <Field label={t.lastName}>
                     <input
                       value={fields.vcardLastName}
                       onChange={(e) => setField('vcardLastName', e.target.value)}
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Phone">
+                  <Field label={t.phone}>
                     <input
                       type="tel"
                       value={fields.vcardPhone}
@@ -594,7 +765,7 @@ export function QRCodeGenerator() {
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Email">
+                  <Field label={t.email}>
                     <input
                       type="email"
                       value={fields.vcardEmail}
@@ -602,14 +773,14 @@ export function QRCodeGenerator() {
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Company">
+                  <Field label={t.company}>
                     <input
                       value={fields.vcardOrg}
                       onChange={(e) => setField('vcardOrg', e.target.value)}
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Website">
+                  <Field label={t.website}>
                     <input
                       type="url"
                       value={fields.vcardUrl}
@@ -623,7 +794,7 @@ export function QRCodeGenerator() {
 
             {c === 'whatsapp' && (
               <>
-                <Field label="WhatsApp number (with country code)">
+                <Field label={t.whatsappNumberLabel}>
                   <input
                     type="tel"
                     value={fields.whatsappNumber}
@@ -632,7 +803,7 @@ export function QRCodeGenerator() {
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Pre-filled message (optional)">
+                <Field label={t.prefilledMessageOptional}>
                   <textarea
                     value={fields.whatsappMessage}
                     onChange={(e) => setField('whatsappMessage', e.target.value)}
@@ -645,19 +816,19 @@ export function QRCodeGenerator() {
 
             {c === 'payment' && (
               <>
-                <Field group label="Payment method">
+                <Field group label={t.paymentMethodLabel}>
                   <div className="flex gap-2">
-                    {PAYMENT_METHODS.map((m) => (
+                    {PAYMENT_METHODS.map((id) => (
                       <button
-                        key={m.id}
-                        onClick={() => setField('paymentMethod', m.id)}
+                        key={id}
+                        onClick={() => setField('paymentMethod', id)}
                         className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
-                          fields.paymentMethod === m.id
+                          fields.paymentMethod === id
                             ? 'bg-indigo-500 text-white'
                             : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
-                        {m.label}
+                        {t.paymentMethods[id]}
                       </button>
                     ))}
                   </div>
@@ -666,7 +837,7 @@ export function QRCodeGenerator() {
                 {fields.paymentMethod === 'sepa' ? (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Beneficiary name">
+                      <Field label={t.beneficiaryName}>
                         <input
                           value={fields.paymentName}
                           onChange={(e) => setField('paymentName', e.target.value)}
@@ -674,7 +845,7 @@ export function QRCodeGenerator() {
                           className={inputClass}
                         />
                       </Field>
-                      <Field label="IBAN">
+                      <Field label={t.iban}>
                         <input
                           value={fields.paymentIban}
                           onChange={(e) => setField('paymentIban', e.target.value)}
@@ -682,7 +853,7 @@ export function QRCodeGenerator() {
                           className={inputClass}
                         />
                       </Field>
-                      <Field label="BIC (optional)">
+                      <Field label={t.bicOptional}>
                         <input
                           value={fields.paymentBic}
                           onChange={(e) => setField('paymentBic', e.target.value)}
@@ -690,7 +861,7 @@ export function QRCodeGenerator() {
                           className={inputClass}
                         />
                       </Field>
-                      <Field label="Amount in EUR (optional)">
+                      <Field label={t.amountEurOptional}>
                         <input
                           inputMode="decimal"
                           value={fields.paymentAmount}
@@ -700,7 +871,7 @@ export function QRCodeGenerator() {
                         />
                       </Field>
                     </div>
-                    <Field label="Message (optional)">
+                    <Field label={t.messageOptional}>
                       <input
                         value={fields.paymentRemittance}
                         onChange={(e) => setField('paymentRemittance', e.target.value)}
@@ -709,14 +880,11 @@ export function QRCodeGenerator() {
                         className={inputClass}
                       />
                     </Field>
-                    <p className="text-xs text-slate-500">
-                      Generates an EPC QR code — scannable from most European banking apps to
-                      pre-fill a SEPA transfer.
-                    </p>
+                    <p className="text-xs text-slate-500">{t.epcNote}</p>
                   </>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="PayPal.me username">
+                    <Field label={t.paypalUsername}>
                       <input
                         value={fields.paymentPaypalUser}
                         onChange={(e) => setField('paymentPaypalUser', e.target.value)}
@@ -724,7 +892,7 @@ export function QRCodeGenerator() {
                         className={inputClass}
                       />
                     </Field>
-                    <Field label="Amount in EUR (optional)">
+                    <Field label={t.amountEurOptional}>
                       <input
                         inputMode="decimal"
                         value={fields.paymentAmount}
@@ -741,59 +909,59 @@ export function QRCodeGenerator() {
 
           <div className="glass mt-8 rounded-2xl p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Design
+              {t.design}
             </p>
 
             <div className="mt-4 space-y-4">
-              <Field group label="Dot style">
+              <Field group label={t.dotStyle}>
                 <div className="flex flex-wrap gap-2">
-                  {DOT_TYPES.map((d) => (
+                  {DOT_TYPES.map((id) => (
                     <button
-                      key={d.id}
-                      onClick={() => setConfig({ dotsType: d.id })}
+                      key={id}
+                      onClick={() => setConfig({ dotsType: id })}
                       className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
-                        config.dotsType === d.id
+                        config.dotsType === id
                           ? 'bg-indigo-500 text-white'
                           : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                       }`}
                     >
-                      {d.label}
+                      {t.dotTypes[id]}
                     </button>
                   ))}
                 </div>
               </Field>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field group label="Corner frame">
+                <Field group label={t.cornerFrame}>
                   <div className="flex flex-wrap gap-2">
-                    {CORNER_SQUARE_TYPES.map((t) => (
+                    {CORNER_SQUARE_TYPES.map((id) => (
                       <button
-                        key={t.id}
-                        onClick={() => setConfig({ cornersSquareType: t.id })}
+                        key={id}
+                        onClick={() => setConfig({ cornersSquareType: id })}
                         className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
-                          config.cornersSquareType === t.id
+                          config.cornersSquareType === id
                             ? 'bg-indigo-500 text-white'
                             : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
-                        {t.label}
+                        {t.cornerSquareTypes[id]}
                       </button>
                     ))}
                   </div>
                 </Field>
-                <Field group label="Corner dot">
+                <Field group label={t.cornerDot}>
                   <div className="flex flex-wrap gap-2">
-                    {CORNER_DOT_TYPES.map((t) => (
+                    {CORNER_DOT_TYPES.map((id) => (
                       <button
-                        key={t.id}
-                        onClick={() => setConfig({ cornersDotType: t.id })}
+                        key={id}
+                        onClick={() => setConfig({ cornersDotType: id })}
                         className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
-                          config.cornersDotType === t.id
+                          config.cornersDotType === id
                             ? 'bg-indigo-500 text-white'
                             : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
-                        {t.label}
+                        {t.cornerDotTypes[id]}
                       </button>
                     ))}
                   </div>
@@ -801,7 +969,7 @@ export function QRCodeGenerator() {
               </div>
 
               <div className="flex flex-wrap items-end gap-5">
-                <Field label="Code color">
+                <Field label={t.codeColor}>
                   <input
                     type="color"
                     value={config.fgColor}
@@ -809,7 +977,7 @@ export function QRCodeGenerator() {
                     className="h-9 w-14 cursor-pointer rounded-lg border border-white/10 bg-white/5"
                   />
                 </Field>
-                <Field label="Background">
+                <Field label={t.background}>
                   <input
                     type="color"
                     value={config.bgColor}
@@ -825,12 +993,12 @@ export function QRCodeGenerator() {
                     onChange={(e) => setConfig({ transparentBg: e.target.checked })}
                     className="size-4 accent-indigo-500"
                   />
-                  Transparent background
+                  {t.transparentBackground}
                 </label>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={`Size — ${config.size}px`}>
+                <Field label={t.size(config.size)}>
                   <input
                     type="range"
                     min={200}
@@ -841,7 +1009,7 @@ export function QRCodeGenerator() {
                     className="w-full accent-indigo-500"
                   />
                 </Field>
-                <Field group label="Error correction">
+                <Field group label={t.errorCorrection}>
                   <div className="flex gap-2">
                     {ERROR_LEVELS.map((l) => (
                       <button
@@ -860,7 +1028,7 @@ export function QRCodeGenerator() {
                 </Field>
               </div>
 
-              <Field label="Center logo (optional)">
+              <Field label={t.centerLogoOptional}>
                 <div className="flex items-center gap-3">
                   <input
                     type="file"
@@ -873,7 +1041,7 @@ export function QRCodeGenerator() {
                       onClick={() => setLogo(null)}
                       className="text-xs text-slate-400 underline hover:text-white"
                     >
-                      Remove
+                      {t.remove}
                     </button>
                   )}
                 </div>
@@ -885,7 +1053,7 @@ export function QRCodeGenerator() {
         <div className="min-w-0 lg:sticky lg:top-8 lg:self-start">
           <div className="glass flex flex-col items-center rounded-2xl p-5">
             <p className="self-start text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Preview
+              {t.preview}
             </p>
             <div
               ref={previewRef}
@@ -894,9 +1062,7 @@ export function QRCodeGenerator() {
               }`}
             />
             {!payload && (
-              <p className="mt-3 text-center text-xs text-slate-500">
-                Fill in the fields to generate your QR code.
-              </p>
+              <p className="mt-3 text-center text-xs text-slate-500">{t.fillFields}</p>
             )}
             <div className="mt-5 grid w-full grid-cols-2 gap-2">
               {DOWNLOAD_FORMATS.map((ext) => (
@@ -914,7 +1080,7 @@ export function QRCodeGenerator() {
 
           <div className="glass mt-4 rounded-2xl p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Saved codes
+              {t.savedCodes}
             </p>
 
             {!user ? (
@@ -923,9 +1089,9 @@ export function QRCodeGenerator() {
                   to="/login"
                   className="text-indigo-300 transition-colors hover:text-indigo-200"
                 >
-                  Sign in
-                </Link>{' '}
-                to save creations and reload them later on any device.
+                  {t.signIn}
+                </Link>
+                {t.signInToSaveSuffix}
               </p>
             ) : (
               <>
@@ -933,7 +1099,7 @@ export function QRCodeGenerator() {
                   <input
                     value={saveName}
                     onChange={(e) => setSaveName(e.target.value)}
-                    placeholder="Name this QR code…"
+                    placeholder={t.nameThisQr}
                     className={inputClass}
                   />
                   <button
@@ -941,15 +1107,13 @@ export function QRCodeGenerator() {
                     disabled={!payload || savingQr}
                     className="shrink-0 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/20 disabled:opacity-40"
                   >
-                    {savingQr ? 'Saving…' : 'Save'}
+                    {savingQr ? t.saving : t.save}
                   </button>
                 </div>
                 {saveError && <p className="mt-2 text-xs text-rose-400">{saveError}</p>}
 
                 {saved.length === 0 ? (
-                  <p className="mt-3 text-xs text-slate-500">
-                    Nothing saved yet. Save a creation to reload it later on any device.
-                  </p>
+                  <p className="mt-3 text-xs text-slate-500">{t.nothingSaved}</p>
                 ) : (
                   <ul className="mt-3 space-y-2">
                     {saved.map((item) => (
@@ -960,19 +1124,18 @@ export function QRCodeGenerator() {
                         <button
                           onClick={() => loadCreation(item)}
                           className="no-glow min-w-0 flex-1 cursor-pointer text-left"
-                          title="Load this QR code"
+                          title={t.loadThisQr}
                         >
                           <span className="block truncate text-sm text-white">{item.name}</span>
                           <span className="block text-[11px] text-slate-500">
-                            {CONTENT_TYPES.find((t) => t.id === item.content_type)?.label ??
-                              item.content_type}{' '}
-                            · {new Date(item.created_at).toLocaleDateString()}
+                            {t.types[item.content_type] ?? item.content_type}{' '}
+                            · {new Date(item.created_at).toLocaleDateString(locale)}
                           </span>
                         </button>
                         <button
                           onClick={() => deleteCreation(item.id)}
                           className="shrink-0 rounded-lg px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-rose-500/20 hover:text-rose-300"
-                          title="Delete"
+                          title={t.delete}
                         >
                           ✕
                         </button>

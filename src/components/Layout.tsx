@@ -3,11 +3,39 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { PanelLeft } from 'lucide-react'
 import { useAuth } from '../auth/auth-context'
 import { getUtilities } from '../utilities/registry'
+import { useLang, useT } from '../i18n/LanguageContext'
+import { localizedUtility } from '../i18n/utilities'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 const COLLAPSE_KEY = 'sidebar-collapsed'
 
+const STR = {
+  en: {
+    utilities: 'Utilities',
+    expandSidebar: 'Expand sidebar',
+    collapseSidebar: 'Collapse sidebar',
+    closeMenu: 'Close menu',
+    openMenu: 'Open menu',
+    logOut: 'Log out',
+    logIn: 'Log in',
+    signInPrompt: 'Sign in to save your settings.',
+  },
+  nl: {
+    utilities: 'Hulpmiddelen',
+    expandSidebar: 'Zijbalk uitklappen',
+    collapseSidebar: 'Zijbalk inklappen',
+    closeMenu: 'Menu sluiten',
+    openMenu: 'Menu openen',
+    logOut: 'Afmelden',
+    logIn: 'Aanmelden',
+    signInPrompt: 'Meld je aan om je instellingen te bewaren.',
+  },
+}
+
 export function Layout() {
   const { user, signOut } = useAuth()
+  const t = useT(STR)
+  const { lang } = useLang()
   const utilities = getUtilities().filter((u) => user || u.availableWithoutAccount)
   const [navOpen, setNavOpen] = useState(false)
   // Desktop-only rail collapse, remembered across sessions.
@@ -62,8 +90,8 @@ export function Layout() {
           {/* Desktop rail collapse/expand toggle. */}
           <button
             onClick={() => setCollapsed((c) => !c)}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? t.expandSidebar : t.collapseSidebar}
+            title={collapsed ? t.expandSidebar : t.collapseSidebar}
             className={`hidden size-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white lg:grid ${
               collapsed ? '' : 'mr-3'
             }`}
@@ -73,7 +101,7 @@ export function Layout() {
           {/* Close affordance — the drawer covers the whole screen on mobile. */}
           <button
             onClick={closeNav}
-            aria-label="Close menu"
+            aria-label={t.closeMenu}
             className="grid size-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
           >
             <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -88,25 +116,31 @@ export function Layout() {
               collapsed ? 'lg:hidden' : ''
             }`}
           >
-            Utilities
+            {t.utilities}
           </p>
-          {utilities.map((u) => (
-            <NavLink
-              key={u.id}
-              to={`/tools/${u.id}`}
-              onClick={closeNav}
-              className={linkClass}
-              title={collapsed ? u.name : undefined}
-            >
-              <span className="transition-transform duration-200 group-hover:scale-110">
-                {u.icon}
-              </span>
-              <span className={`flex-1 ${collapsed ? 'lg:hidden' : ''}`}>{u.name}</span>
-            </NavLink>
-          ))}
+          {utilities.map((u) => {
+            const name = localizedUtility(u.id, lang, u).name
+            return (
+              <NavLink
+                key={u.id}
+                to={`/tools/${u.id}`}
+                onClick={closeNav}
+                className={linkClass}
+                title={collapsed ? name : undefined}
+              >
+                <span className="transition-transform duration-200 group-hover:scale-110">
+                  {u.icon}
+                </span>
+                <span className={`flex-1 ${collapsed ? 'lg:hidden' : ''}`}>{name}</span>
+              </NavLink>
+            )
+          })}
         </nav>
 
         <div className={`border-t border-white/5 p-4 ${collapsed ? 'lg:px-2' : ''}`}>
+          <div className={`mb-3 flex justify-center ${collapsed ? 'lg:hidden' : ''}`}>
+            <LanguageSwitcher />
+          </div>
           {user ? (
             <>
               <p
@@ -117,29 +151,29 @@ export function Layout() {
               </p>
               <button
                 onClick={signOut}
-                title="Log out"
+                title={t.logOut}
                 className={`mt-3 w-full rounded-xl border border-white/10 bg-white/5 py-1.5 text-sm font-medium text-slate-300 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white ${
                   collapsed ? 'lg:px-0' : 'px-3'
                 }`}
               >
-                <span className={collapsed ? 'lg:hidden' : ''}>Log out</span>
+                <span className={collapsed ? 'lg:hidden' : ''}>{t.logOut}</span>
                 <span className={collapsed ? 'hidden lg:inline' : 'hidden'}>⏻</span>
               </button>
             </>
           ) : (
             <>
               <p className={`text-xs text-slate-500 ${collapsed ? 'lg:hidden' : ''}`}>
-                Sign in to save your settings.
+                {t.signInPrompt}
               </p>
               <Link
                 to="/login"
                 onClick={closeNav}
-                title="Log in"
+                title={t.logIn}
                 className={`mt-3 block w-full rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 py-1.5 text-center text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:brightness-110 ${
                   collapsed ? 'lg:px-0' : 'px-3'
                 }`}
               >
-                <span className={collapsed ? 'lg:hidden' : ''}>Log in</span>
+                <span className={collapsed ? 'lg:hidden' : ''}>{t.logIn}</span>
                 <span className={collapsed ? 'hidden lg:inline' : 'hidden'}>→</span>
               </Link>
             </>
@@ -152,7 +186,7 @@ export function Layout() {
         <header className="glass-strong z-10 m-3 mb-0 flex items-center gap-3 rounded-2xl px-4 py-3 lg:hidden">
           <button
             onClick={() => setNavOpen(true)}
-            aria-label="Open menu"
+            aria-label={t.openMenu}
             className="grid size-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
           >
             <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

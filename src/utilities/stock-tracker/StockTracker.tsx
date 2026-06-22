@@ -1,6 +1,132 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
+import { useLang, useT } from '../../i18n/LanguageContext'
+
+const STR = {
+  en: {
+    title: 'Stock Tracker',
+    intro:
+      "Search securities, track a watchlist of prices and charts, and drill into any fund or ETF's underlying holdings.",
+    avTab: 'Alpha Vantage · free',
+    fmpTab: 'FMP · free',
+    morningstarTab: 'Morningstar · paid',
+    avKeyLabel: 'Alpha Vantage API key',
+    avKeyPlaceholder: 'Paste your Alpha Vantage key',
+    avHelpPrefix: 'Get a free key at',
+    avHelpLink: 'alphavantage.co',
+    avHelpSuffix:
+      "(no card). Free tier ≈ 25 requests/day, 1/sec — each search, chart and holdings view is one call, so the app throttles and caches to conserve them. Longer ranges use weekly/monthly data (full daily history is a premium feature). Holdings come from the ETF profile (US funds/ETFs). It's saved to your account (only you can read it) and sent straight to the provider.",
+    fmpKeyLabel: 'Financial Modeling Prep API key',
+    fmpKeyPlaceholder: 'Paste your FMP key',
+    fmpHelpPrefix: 'Get a free key at',
+    fmpHelpLink: 'financialmodelingprep.com',
+    fmpHelpSuffix:
+      "(no card). Free plan ≈ 250 requests/day with no per-second limit — more headroom than Alpha Vantage for search and price history. FMP gates fund/ETF holdings behind a paid plan, so holdings are fetched from Alpha Vantage instead (add a free Alpha Vantage key above to enable them). It's saved to your account (only you can read it) and sent straight to the provider.",
+    msCredsLabel: 'Morningstar API credentials',
+    msUserPlaceholder: 'API username',
+    msPassPlaceholder: 'API password',
+    regionLabel: 'Region',
+    regionNa: 'North America (us-api)',
+    regionEmea: 'EMEA (emea-api)',
+    currencyLabel: 'Currency',
+    holdingsViewLabel: 'Holdings view ID',
+    msHelpPrefix: 'Direct Web Services is a paid, entitled product — see',
+    msHelpLink: 'the developer docs',
+    msHelpSuffix:
+      '. Credentials are saved to your account (only you can read them) and exchanged for a short-lived token server-side. The holdings view ID is entitlement-specific.',
+    needAvKey: 'Enter your Alpha Vantage API key above to start.',
+    needFmpKey: 'Enter your Financial Modeling Prep API key above to start.',
+    needMsCreds: 'Enter your Morningstar API username and password above to start.',
+    searchPlaceholder: 'Search a stock, fund or ETF…',
+    searching: 'Searching…',
+    search: 'Search',
+    added: 'Added',
+    watch: '+ Watch',
+    watchlist: 'Watchlist',
+    loadingSettings: 'Loading your settings…',
+    loadingRow: 'Loading…',
+    removeFromWatchlist: 'Remove from watchlist',
+    loadingHoldings: 'Loading holdings…',
+    noHoldings:
+      'No holdings published for this security — it looks like an individual stock rather than a fund or ETF.',
+    topHoldings: (n: number) => `Top holdings (${n})`,
+    via: (provider: string) => `via ${provider}`,
+    sectors: 'Sectors',
+    chartCaption: (from: string, to: string, points: number, currency: string | null) =>
+      `${from} → ${to} · ${points} points${currency ? ` · ${currency}` : ''}`,
+    emptyWatchlist:
+      'Your watchlist is empty — search above and add a security to start tracking it. Open a row to see its price chart and, for funds/ETFs, the underlying holdings.',
+    errHistory: 'Could not load price history.',
+    errHoldings: 'Could not load holdings.',
+    errFmpHoldings:
+      "FMP's holdings data needs a paid plan. Add a free Alpha Vantage key above (or switch to the Alpha Vantage provider) to see holdings.",
+    errNoMatch: 'No securities matched that search.',
+    errSearch: 'Search failed.',
+    errRequest: (status: number) => `Request failed (${status})`,
+  },
+  nl: {
+    title: 'Aandelenvolger',
+    intro:
+      'Zoek effecten, volg een watchlist met koersen en grafieken, en duik in de onderliggende posities van elk fonds of ETF.',
+    avTab: 'Alpha Vantage · gratis',
+    fmpTab: 'FMP · gratis',
+    morningstarTab: 'Morningstar · betalend',
+    avKeyLabel: 'Alpha Vantage API-sleutel',
+    avKeyPlaceholder: 'Plak je Alpha Vantage-sleutel',
+    avHelpPrefix: 'Haal een gratis sleutel op via',
+    avHelpLink: 'alphavantage.co',
+    avHelpSuffix:
+      '(geen kaart nodig). Gratis tier ≈ 25 verzoeken/dag, 1/sec — elke zoekopdracht, grafiek en positieoverzicht is één call, dus de app vertraagt en cachet om ze te sparen. Langere periodes gebruiken week-/maanddata (volledige daggeschiedenis is een premiumfunctie). Posities komen uit het ETF-profiel (Amerikaanse fondsen/ETF’s). Ze wordt op je account bewaard (alleen jij kan ze lezen) en rechtstreeks naar de databron gestuurd.',
+    fmpKeyLabel: 'Financial Modeling Prep API-sleutel',
+    fmpKeyPlaceholder: 'Plak je FMP-sleutel',
+    fmpHelpPrefix: 'Haal een gratis sleutel op via',
+    fmpHelpLink: 'financialmodelingprep.com',
+    fmpHelpSuffix:
+      '(geen kaart nodig). Gratis plan ≈ 250 verzoeken/dag zonder limiet per seconde — meer ruimte dan Alpha Vantage voor zoeken en koershistoriek. FMP plaatst fonds-/ETF-posities achter een betalend plan, dus posities worden in de plaats opgehaald bij Alpha Vantage (voeg hierboven een gratis Alpha Vantage-sleutel toe om ze in te schakelen). Ze wordt op je account bewaard (alleen jij kan ze lezen) en rechtstreeks naar de databron gestuurd.',
+    msCredsLabel: 'Morningstar API-inloggegevens',
+    msUserPlaceholder: 'API-gebruikersnaam',
+    msPassPlaceholder: 'API-wachtwoord',
+    regionLabel: 'Regio',
+    regionNa: 'Noord-Amerika (us-api)',
+    regionEmea: 'EMEA (emea-api)',
+    currencyLabel: 'Munt',
+    holdingsViewLabel: 'Holdings view-ID',
+    msHelpPrefix: 'Direct Web Services is een betalend product met toegangsrechten — zie',
+    msHelpLink: 'de ontwikkelaarsdocumentatie',
+    msHelpSuffix:
+      '. Inloggegevens worden op je account bewaard (alleen jij kan ze lezen) en serverzijde ingeruild voor een kortlevend token. De holdings view-ID is afhankelijk van je toegangsrechten.',
+    needAvKey: 'Voer hierboven je Alpha Vantage API-sleutel in om te starten.',
+    needFmpKey: 'Voer hierboven je Financial Modeling Prep API-sleutel in om te starten.',
+    needMsCreds: 'Voer hierboven je Morningstar API-gebruikersnaam en -wachtwoord in om te starten.',
+    searchPlaceholder: 'Zoek een aandeel, fonds of ETF…',
+    searching: 'Zoeken…',
+    search: 'Zoeken',
+    added: 'Toegevoegd',
+    watch: '+ Volgen',
+    watchlist: 'Watchlist',
+    loadingSettings: 'Je instellingen laden…',
+    loadingRow: 'Laden…',
+    removeFromWatchlist: 'Uit watchlist verwijderen',
+    loadingHoldings: 'Posities laden…',
+    noHoldings:
+      'Geen posities gepubliceerd voor dit effect — het lijkt eerder een individueel aandeel dan een fonds of ETF.',
+    topHoldings: (n: number) => `Grootste posities (${n})`,
+    via: (provider: string) => `via ${provider}`,
+    sectors: 'Sectoren',
+    chartCaption: (from: string, to: string, points: number, currency: string | null) =>
+      `${from} → ${to} · ${points} punten${currency ? ` · ${currency}` : ''}`,
+    emptyWatchlist:
+      'Je watchlist is leeg — zoek hierboven en voeg een effect toe om het te volgen. Open een rij voor de koersgrafiek en, voor fondsen/ETF’s, de onderliggende posities.',
+    errHistory: 'Kon de koershistoriek niet laden.',
+    errHoldings: 'Kon de posities niet laden.',
+    errFmpHoldings:
+      'De positiegegevens van FMP vereisen een betalend plan. Voeg hierboven een gratis Alpha Vantage-sleutel toe (of schakel over naar de Alpha Vantage-databron) om posities te zien.',
+    errNoMatch: 'Geen effecten gevonden voor die zoekopdracht.',
+    errSearch: 'Zoeken mislukt.',
+    errRequest: (status: number) => `Verzoek mislukt (${status})`,
+  },
+}
 
 /**
  * Stock Tracker. Search securities, build a watchlist with prices + charts, and
@@ -148,12 +274,16 @@ function avGate(): Promise<void> {
   return wait ? new Promise((r) => setTimeout(r, wait)) : Promise.resolve()
 }
 
-async function callFn(c: Config, params: Record<string, string>) {
+async function callFn(
+  c: Config,
+  params: Record<string, string>,
+  requestFailed: (status: number) => string
+) {
   if (c.provider === 'alphavantage') await avGate()
   const { url, headers } = providerRequest(c, params)
   const res = await fetch(url, { headers })
   const body = await res.json()
-  if (!res.ok || body.error) throw new Error(body.error ?? `Request failed (${res.status})`)
+  if (!res.ok || body.error) throw new Error(body.error ?? requestFailed(res.status))
   return body.data
 }
 
@@ -165,10 +295,10 @@ function startDate(days: number): string {
 }
 
 // Format a price; with no currency (Alpha Vantage) show a plain number.
-function fmtPrice(v: number, currency: string | null): string {
+function fmtPrice(v: number, currency: string | null, locale: string): string {
   if (!currency) return v.toFixed(2)
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       maximumFractionDigits: 2,
@@ -247,11 +377,12 @@ function ChangeBadge({
   change: { abs: number; pct: number } | null
   currency: string | null
 }) {
+  const { locale } = useLang()
   if (!change) return <span className="text-xs text-slate-500">—</span>
   const up = change.abs >= 0
   return (
     <span className={`text-sm font-medium tabular-nums ${up ? 'text-emerald-400' : 'text-red-400'}`}>
-      {up ? '▲' : '▼'} {fmtPrice(Math.abs(change.abs), currency)} ({up ? '+' : ''}
+      {up ? '▲' : '▼'} {fmtPrice(Math.abs(change.abs), currency, locale)} ({up ? '+' : ''}
       {change.pct.toFixed(2)}%)
     </span>
   )
@@ -288,24 +419,20 @@ function HoldingsPanel({
   loading: boolean
   error: string | undefined
 }) {
-  if (loading) return <p className="mt-4 animate-pulse text-xs text-slate-500">Loading holdings…</p>
+  const t = useT(STR)
+  if (loading) return <p className="mt-4 animate-pulse text-xs text-slate-500">{t.loadingHoldings}</p>
   if (error) return <p className="mt-4 text-xs text-amber-300">{error}</p>
   if (!holdings) return null
   if (!holdings.holdings.length) {
-    return (
-      <p className="mt-4 text-xs text-slate-500">
-        No holdings published for this security — it looks like an individual stock rather than a
-        fund or ETF.
-      </p>
-    )
+    return <p className="mt-4 text-xs text-slate-500">{t.noHoldings}</p>
   }
   const maxHolding = Math.max(...holdings.holdings.map((h) => h.weight ?? 0), 1)
   const maxSector = Math.max(...holdings.sectors.map((s) => s.weight ?? 0), 1)
   return (
     <div className="mt-4 border-t border-white/10 pt-4">
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-        Top holdings ({holdings.holdings.length})
-        {holdings.via && <span className="ml-2 normal-case tracking-normal text-slate-600">via {holdings.via}</span>}
+        {t.topHoldings(holdings.holdings.length)}
+        {holdings.via && <span className="ml-2 normal-case tracking-normal text-slate-600">{t.via(holdings.via)}</span>}
       </p>
       <ul className="space-y-1.5">
         {holdings.holdings.map((h, i) => (
@@ -321,7 +448,7 @@ function HoldingsPanel({
       {holdings.sectors.length > 0 && (
         <>
           <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-            Sectors
+            {t.sectors}
           </p>
           <ul className="space-y-1.5">
             {holdings.sectors.map((s) => (
@@ -355,6 +482,8 @@ function WatchRow({
   onToggle: () => void
   onRemove: () => void
 }) {
+  const t = useT(STR)
+  const { locale } = useLang()
   const series = history?.series ?? []
   const currency = history?.currency ?? security.currency ?? null
   const change = rangeChange(series)
@@ -372,7 +501,7 @@ function WatchRow({
         </button>
 
         {loading ? (
-          <span className="animate-pulse text-xs text-slate-500">Loading…</span>
+          <span className="animate-pulse text-xs text-slate-500">{t.loadingRow}</span>
         ) : (
           <>
             <div className="hidden sm:block">
@@ -380,7 +509,7 @@ function WatchRow({
             </div>
             <div className="text-right">
               <p className="text-sm font-semibold tabular-nums text-white">
-                {latest != null ? fmtPrice(latest, currency) : '—'}
+                {latest != null ? fmtPrice(latest, currency, locale) : '—'}
               </p>
               <ChangeBadge change={change} currency={currency} />
             </div>
@@ -389,7 +518,7 @@ function WatchRow({
 
         <button
           onClick={onRemove}
-          title="Remove from watchlist"
+          title={t.removeFromWatchlist}
           className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-400 transition-all duration-200 hover:border-red-500/40 hover:text-red-300"
         >
           ✕
@@ -402,8 +531,7 @@ function WatchRow({
             <>
               <AreaChart series={series} up={up} />
               <p className="mt-1 text-center text-[11px] text-slate-500">
-                {series[0].date} → {series[series.length - 1].date} · {series.length} points
-                {currency ? ` · ${currency}` : ''}
+                {t.chartCaption(series[0].date, series[series.length - 1].date, series.length, currency)}
               </p>
             </>
           )}
@@ -415,6 +543,7 @@ function WatchRow({
 }
 
 export function StockTracker() {
+  const t = useT(STR)
   const { config, setConfig, loading, saving } = useUtilityConfig<Config>('stock-tracker', DEFAULTS)
 
   const hasCreds = hasCredentials(config)
@@ -452,10 +581,10 @@ export function StockTracker() {
           start: startDate(range.days),
         }
         if (config.provider === 'morningstar') params.currency = config.currency
-        const data = (await callFn(config, params)) as History
+        const data = (await callFn(config, params, t.errRequest)) as History
         setHistories((s) => ({ ...s, [key]: data }))
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not load price history.')
+        setError(e instanceof Error ? e.message : t.errHistory)
       } finally {
         inFlight.current.delete(key)
         setLoadingIds((s) => ({ ...s, [key]: false }))
@@ -476,8 +605,7 @@ export function StockTracker() {
       if (fmpFallback && !config.avKey.trim()) {
         setHoldingsError((s) => ({
           ...s,
-          [key]:
-            "FMP's holdings data needs a paid plan. Add a free Alpha Vantage key above (or switch to the Alpha Vantage provider) to see holdings.",
+          [key]: t.errFmpHoldings,
         }))
         return
       }
@@ -491,13 +619,13 @@ export function StockTracker() {
           params.viewId = config.holdingsViewId
           params.currency = config.currency
         }
-        const data = (await callFn(holdingsConfig, params)) as Holdings
+        const data = (await callFn(holdingsConfig, params, t.errRequest)) as Holdings
         if (fmpFallback) data.via = 'Alpha Vantage'
         setHoldingsMap((s) => ({ ...s, [key]: data }))
       } catch (e) {
         setHoldingsError((s) => ({
           ...s,
-          [key]: e instanceof Error ? e.message : 'Could not load holdings.',
+          [key]: e instanceof Error ? e.message : t.errHoldings,
         }))
       } finally {
         setHoldingsLoading((s) => ({ ...s, [key]: false }))
@@ -539,11 +667,11 @@ export function StockTracker() {
     try {
       const params: Record<string, string> = { action: 'search', q }
       if (config.provider === 'morningstar') params.currency = config.currency
-      const data = (await callFn(config, params)) as Security[]
+      const data = (await callFn(config, params, t.errRequest)) as Security[]
       setResults(data)
-      if (!data.length) setError('No securities matched that search.')
+      if (!data.length) setError(t.errNoMatch)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Search failed.')
+      setError(e instanceof Error ? e.message : t.errSearch)
     } finally {
       setSearching(false)
     }
@@ -563,7 +691,7 @@ export function StockTracker() {
   }
 
   if (loading) {
-    return <p className="animate-pulse text-slate-400">Loading your settings…</p>
+    return <p className="animate-pulse text-slate-400">{t.loadingSettings}</p>
   }
 
   const providerTab = (p: Provider) =>
@@ -576,24 +704,21 @@ export function StockTracker() {
   return (
     <div className="max-w-2xl animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Stock Tracker</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
         <SaveStatus saving={saving} />
       </div>
-      <p className="mt-2 text-slate-400">
-        Search securities, track a watchlist of prices and charts, and drill into any fund or ETF's
-        underlying holdings.
-      </p>
+      <p className="mt-2 text-slate-400">{t.intro}</p>
 
       {/* Provider toggle */}
       <div className="mt-8 flex flex-wrap gap-2">
         <button className={providerTab('alphavantage')} onClick={() => setConfig({ provider: 'alphavantage' })}>
-          Alpha Vantage · free
+          {t.avTab}
         </button>
         <button className={providerTab('fmp')} onClick={() => setConfig({ provider: 'fmp' })}>
-          FMP · free
+          {t.fmpTab}
         </button>
         <button className={providerTab('morningstar')} onClick={() => setConfig({ provider: 'morningstar' })}>
-          Morningstar · paid
+          {t.morningstarTab}
         </button>
       </div>
 
@@ -602,74 +727,66 @@ export function StockTracker() {
         {isAv ? (
           <>
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Alpha Vantage API key
+              {t.avKeyLabel}
             </p>
             <input
               type="password"
               value={config.avKey}
               onChange={(e) => setConfig({ avKey: e.target.value })}
-              placeholder="Paste your Alpha Vantage key"
+              placeholder={t.avKeyPlaceholder}
               autoComplete="off"
               className="glass mt-2.5 w-full rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
             <p className="mt-2 text-xs text-slate-500">
-              Get a free key at{' '}
+              {t.avHelpPrefix}{' '}
               <a
                 href="https://www.alphavantage.co/support/#api-key"
                 target="_blank"
                 rel="noreferrer"
                 className="text-indigo-300 hover:text-indigo-200"
               >
-                alphavantage.co
+                {t.avHelpLink}
               </a>{' '}
-              (no card). Free tier ≈ 25 requests/day, 1/sec — each search, chart and holdings view is
-              one call, so the app throttles and caches to conserve them. Longer ranges use
-              weekly/monthly data (full daily history is a premium feature). Holdings come from the
-              ETF profile (US funds/ETFs). It's saved to your account (only you can read it) and sent
-              straight to the provider.
+              {t.avHelpSuffix}
             </p>
           </>
         ) : config.provider === 'fmp' ? (
           <>
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Financial Modeling Prep API key
+              {t.fmpKeyLabel}
             </p>
             <input
               type="password"
               value={config.fmpKey}
               onChange={(e) => setConfig({ fmpKey: e.target.value })}
-              placeholder="Paste your FMP key"
+              placeholder={t.fmpKeyPlaceholder}
               autoComplete="off"
               className="glass mt-2.5 w-full rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
             <p className="mt-2 text-xs text-slate-500">
-              Get a free key at{' '}
+              {t.fmpHelpPrefix}{' '}
               <a
                 href="https://site.financialmodelingprep.com/developer/docs"
                 target="_blank"
                 rel="noreferrer"
                 className="text-indigo-300 hover:text-indigo-200"
               >
-                financialmodelingprep.com
+                {t.fmpHelpLink}
               </a>{' '}
-              (no card). Free plan ≈ 250 requests/day with no per-second limit — more headroom than
-              Alpha Vantage for search and price history. FMP gates fund/ETF holdings behind a paid
-              plan, so holdings are fetched from Alpha Vantage instead (add a free Alpha Vantage key
-              above to enable them). It's saved to your account (only you can read it) and sent
-              straight to the provider.
+              {t.fmpHelpSuffix}
             </p>
           </>
         ) : (
           <>
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Morningstar API credentials
+              {t.msCredsLabel}
             </p>
             <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <input
                 type="text"
                 value={config.username}
                 onChange={(e) => setConfig({ username: e.target.value })}
-                placeholder="API username"
+                placeholder={t.msUserPlaceholder}
                 autoComplete="off"
                 className="glass w-full rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               />
@@ -677,25 +794,25 @@ export function StockTracker() {
                 type="password"
                 value={config.password}
                 onChange={(e) => setConfig({ password: e.target.value })}
-                placeholder="API password"
+                placeholder={t.msPassPlaceholder}
                 autoComplete="off"
                 className="glass w-full rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
             <div className="mt-3 flex flex-wrap gap-3">
               <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-                Region
+                {t.regionLabel}
                 <select
                   value={config.region}
                   onChange={(e) => setConfig({ region: e.target.value as Region })}
                   className="glass rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
-                  <option value="na" className="bg-slate-900">North America (us-api)</option>
-                  <option value="emea" className="bg-slate-900">EMEA (emea-api)</option>
+                  <option value="na" className="bg-slate-900">{t.regionNa}</option>
+                  <option value="emea" className="bg-slate-900">{t.regionEmea}</option>
                 </select>
               </label>
               <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-                Currency
+                {t.currencyLabel}
                 <select
                   value={config.currency}
                   onChange={(e) => setConfig({ currency: e.target.value })}
@@ -709,7 +826,7 @@ export function StockTracker() {
                 </select>
               </label>
               <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-                Holdings view ID
+                {t.holdingsViewLabel}
                 <input
                   type="text"
                   value={config.holdingsViewId}
@@ -720,17 +837,16 @@ export function StockTracker() {
               </label>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Direct Web Services is a paid, entitled product — see{' '}
+              {t.msHelpPrefix}{' '}
               <a
                 href="https://developer.morningstar.com/direct-web-services/documentation/documentation/get-started/authentication"
                 target="_blank"
                 rel="noreferrer"
                 className="text-indigo-300 hover:text-indigo-200"
               >
-                the developer docs
+                {t.msHelpLink}
               </a>
-              . Credentials are saved to your account (only you can read them) and exchanged for a
-              short-lived token server-side. The holdings view ID is entitlement-specific.
+              {t.msHelpSuffix}
             </p>
           </>
         )}
@@ -739,10 +855,10 @@ export function StockTracker() {
       {!hasCreds && (
         <p className="mt-4 text-xs text-amber-300">
           {config.provider === 'alphavantage'
-            ? 'Enter your Alpha Vantage API key above to start.'
+            ? t.needAvKey
             : config.provider === 'fmp'
-              ? 'Enter your Financial Modeling Prep API key above to start.'
-              : 'Enter your Morningstar API username and password above to start.'}
+              ? t.needFmpKey
+              : t.needMsCreds}
         </p>
       )}
 
@@ -752,7 +868,7 @@ export function StockTracker() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
-          placeholder="Search a stock, fund or ETF…"
+          placeholder={t.searchPlaceholder}
           disabled={!hasCreds}
           className="glass flex-1 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-40"
         />
@@ -761,7 +877,7 @@ export function StockTracker() {
           disabled={!hasCreds || searching || !query.trim()}
           className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {searching ? 'Searching…' : 'Search'}
+          {searching ? t.searching : t.search}
         </button>
       </div>
 
@@ -792,7 +908,7 @@ export function StockTracker() {
                   disabled={added}
                   className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/10 disabled:opacity-40"
                 >
-                  {added ? 'Added' : '+ Watch'}
+                  {added ? t.added : t.watch}
                 </button>
               </li>
             )
@@ -804,7 +920,7 @@ export function StockTracker() {
       {config.watchlist.length > 0 && (
         <div className="mt-8 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">
-            Watchlist
+            {t.watchlist}
           </h2>
           <div className="flex gap-1.5">
             {RANGES.map((r) => (
@@ -844,10 +960,7 @@ export function StockTracker() {
         </ul>
       ) : (
         hasCreds && (
-          <p className="mt-8 text-sm text-slate-500">
-            Your watchlist is empty — search above and add a security to start tracking it. Open a
-            row to see its price chart and, for funds/ETFs, the underlying holdings.
-          </p>
+          <p className="mt-8 text-sm text-slate-500">{t.emptyWatchlist}</p>
         )
       )}
     </div>

@@ -2,14 +2,52 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from './auth-context'
+import { useT } from '../i18n/LanguageContext'
+import { LanguageSwitcher } from '../components/LanguageSwitcher'
 
 type Mode = 'login' | 'register'
+
+const STR = {
+  en: {
+    loginSubtitle: 'Log in to your account',
+    registerSubtitle: 'Create a new account',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm password',
+    passwordsNoMatch: 'Passwords do not match.',
+    accountCreated:
+      'Account created. If email confirmation is enabled, check your inbox before logging in.',
+    pleaseWait: 'Please wait…',
+    logIn: 'Log in',
+    register: 'Register',
+    noAccount: 'No account yet?',
+    haveAccount: 'Already have an account?',
+    continueWithout: 'Continue without an account →',
+  },
+  nl: {
+    loginSubtitle: 'Meld je aan bij je account',
+    registerSubtitle: 'Maak een nieuw account',
+    email: 'E-mail',
+    password: 'Wachtwoord',
+    confirmPassword: 'Bevestig wachtwoord',
+    passwordsNoMatch: 'Wachtwoorden komen niet overeen.',
+    accountCreated:
+      'Account aangemaakt. Als e-mailbevestiging aanstaat, controleer dan je inbox voor je aanmeldt.',
+    pleaseWait: 'Even geduld…',
+    logIn: 'Aanmelden',
+    register: 'Registreren',
+    noAccount: 'Nog geen account?',
+    haveAccount: 'Heb je al een account?',
+    continueWithout: 'Verdergaan zonder account →',
+  },
+}
 
 const inputClass =
   'w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-white placeholder-slate-500 transition-all duration-200 focus:border-indigo-400/60 focus:bg-white/[0.07] focus:outline-none focus:ring-2 focus:ring-indigo-500/20'
 
 export function AuthPage() {
   const { signIn, signUp } = useAuth()
+  const t = useT(STR)
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,7 +62,7 @@ export function AuthPage() {
     setNotice(null)
 
     if (mode === 'register' && password !== confirmPassword) {
-      setError('Passwords do not match.')
+      setError(t.passwordsNoMatch)
       return
     }
 
@@ -36,9 +74,7 @@ export function AuthPage() {
     if (authError) {
       setError(authError)
     } else if (mode === 'register') {
-      setNotice(
-        'Account created. If email confirmation is enabled, check your inbox before logging in.'
-      )
+      setNotice(t.accountCreated)
       setMode('login')
     }
   }
@@ -51,6 +87,9 @@ export function AuthPage() {
 
   return (
     <div className="ambient flex min-h-screen items-center justify-center bg-surface px-4">
+      <div className="absolute right-4 top-4 z-10">
+        <LanguageSwitcher />
+      </div>
       <div className="relative z-10 w-full max-w-sm animate-fade-up">
         <div className="mb-8 text-center">
           <svg className="mx-auto size-16" viewBox="0 0 24 24" fill="none" stroke="url(#toolbox-grad)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -70,14 +109,14 @@ export function AuthPage() {
             <span className="text-gradient">Toolbox</span>
           </h1>
           <p className="mt-1.5 text-sm text-slate-400">
-            {mode === 'login' ? 'Log in to your account' : 'Create a new account'}
+            {mode === 'login' ? t.loginSubtitle : t.registerSubtitle}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="glass space-y-4 rounded-2xl p-6 shadow-2xl">
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-300">
-              Email
+              {t.email}
             </label>
             <input
               id="email"
@@ -93,7 +132,7 @@ export function AuthPage() {
 
           <div>
             <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-300">
-              Password
+              {t.password}
             </label>
             <input
               id="password"
@@ -114,7 +153,7 @@ export function AuthPage() {
                 htmlFor="confirm-password"
                 className="mb-1.5 block text-sm font-medium text-slate-300"
               >
-                Confirm password
+                {t.confirmPassword}
               </label>
               <input
                 id="confirm-password"
@@ -146,29 +185,29 @@ export function AuthPage() {
             disabled={submitting}
             className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100"
           >
-            {submitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Register'}
+            {submitting ? t.pleaseWait : mode === 'login' ? t.logIn : t.register}
           </button>
         </form>
 
         <p className="mt-5 text-center text-sm text-slate-400">
           {mode === 'login' ? (
             <>
-              No account yet?{' '}
+              {t.noAccount}{' '}
               <button
                 onClick={() => switchMode('register')}
                 className="no-glow font-medium text-indigo-300 transition-colors hover:text-indigo-200"
               >
-                Register
+                {t.register}
               </button>
             </>
           ) : (
             <>
-              Already have an account?{' '}
+              {t.haveAccount}{' '}
               <button
                 onClick={() => switchMode('login')}
                 className="no-glow font-medium text-indigo-300 transition-colors hover:text-indigo-200"
               >
-                Log in
+                {t.logIn}
               </button>
             </>
           )}
@@ -179,7 +218,7 @@ export function AuthPage() {
             to="/"
             className="text-slate-500 transition-colors hover:text-slate-300"
           >
-            Continue without an account →
+            {t.continueWithout}
           </Link>
         </p>
       </div>

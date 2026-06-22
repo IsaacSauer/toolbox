@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
+import { useLang, useT } from '../../i18n/LanguageContext'
 
 /**
  * Work Hours tracker. Answers one question per month: "how many hours do I
@@ -17,14 +18,101 @@ import { useUtilityConfig } from '../../hooks/useUtilityConfig'
 
 // JS getDay(): 0=Sun … 6=Sat. We display the week Monday-first.
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
-const WEEKDAY_LABELS: Record<number, string> = {
-  1: 'Mon',
-  2: 'Tue',
-  3: 'Wed',
-  4: 'Thu',
-  5: 'Fri',
-  6: 'Sat',
-  0: 'Sun',
+
+/** All user-facing strings for this tool, co-located per language. */
+const STR = {
+  en: {
+    // getDay() value → short weekday label
+    weekdays: { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' } as Record<
+      number,
+      string
+    >,
+    loading: 'Loading your settings…',
+    title: 'Work Hours',
+    intro:
+      'Log the hours you worked each week and mark the days you took off — see exactly how many hours you still owe for the month.',
+    settings: 'Settings',
+    hoursPerDay: 'Hours per day',
+    workDays: 'Work days',
+    publicHolidays: 'Public holidays',
+    none: 'None',
+    holidayError: 'Could not load public holidays.',
+    prevMonth: 'Previous month',
+    nextMonth: 'Next month',
+    thisMonth: 'This month',
+    required: 'Required',
+    worked: 'Worked',
+    stillToWork: 'Still to work',
+    overtime: 'Overtime',
+    off: (n: number) => `−${n} off`,
+    holidays: (n: number) => `−${n} holiday${n === 1 ? '' : 's'}`,
+    hoursLeft: (h: string, n: number) => `${h} hour${n === 1 ? '' : 's'} left this month.`,
+    onTargetMonth: 'Right on target for this month. 🎉',
+    over: (h: string, n: number) => `You're ${h} hour${n === 1 ? '' : 's'} over. 🎉`,
+    onTrack: 'On track ✓',
+    ahead: (h: string) => `${h} h ahead`,
+    weekStillToWork: (h: string) => `${h} h still to work`,
+    target: (h: string) => `${h} h target`,
+    workedField: 'Worked',
+    holidayTitle: (name: string) => `${name} — public holiday`,
+    dayOffTitle: 'Day off — click to mark as worked',
+    workDayTitle: 'Work day — click to mark as off',
+    tip: (notation: ReactNode, ex1: ReactNode, ex2: ReactNode) => (
+      <>
+        Tip: click a work day to mark it as off (vacation, sick) — it drops out of the required
+        hours. Public holidays (violet) are excluded automatically for the country you pick. Enter
+        hours as a decimal ({notation}) or as hours-minutes ({ex1} / {ex2}). Each week's “still to
+        work” rolls any surplus or shortfall over from earlier weeks.
+      </>
+    ),
+    savedMonths: 'Saved months',
+  },
+  nl: {
+    // getDay() value → short weekday label
+    weekdays: { 0: 'Zo', 1: 'Ma', 2: 'Di', 3: 'Wo', 4: 'Do', 5: 'Vr', 6: 'Za' } as Record<
+      number,
+      string
+    >,
+    loading: 'Je instellingen laden…',
+    title: 'Werkuren',
+    intro:
+      'Noteer de uren die je elke week werkte en duid de dagen aan die je vrij nam — zie precies hoeveel uren je deze maand nog moet werken.',
+    settings: 'Instellingen',
+    hoursPerDay: 'Uren per dag',
+    workDays: 'Werkdagen',
+    publicHolidays: 'Feestdagen',
+    none: 'Geen',
+    holidayError: 'Kon de feestdagen niet laden.',
+    prevMonth: 'Vorige maand',
+    nextMonth: 'Volgende maand',
+    thisMonth: 'Deze maand',
+    required: 'Vereist',
+    worked: 'Gewerkt',
+    stillToWork: 'Nog te werken',
+    overtime: 'Overuren',
+    off: (n: number) => `−${n} vrij`,
+    holidays: (n: number) => `−${n} feestdag${n === 1 ? '' : 'en'}`,
+    hoursLeft: (h: string, _n: number) => `${h} uur over deze maand.`,
+    onTargetMonth: 'Precies op schema voor deze maand. 🎉',
+    over: (h: string, _n: number) => `Je staat ${h} uur in overuren. 🎉`,
+    onTrack: 'Op schema ✓',
+    ahead: (h: string) => `${h} u voor`,
+    weekStillToWork: (h: string) => `${h} u nog te werken`,
+    target: (h: string) => `${h} u doel`,
+    workedField: 'Gewerkt',
+    holidayTitle: (name: string) => `${name} — feestdag`,
+    dayOffTitle: 'Vrije dag — klik om als gewerkt te markeren',
+    workDayTitle: 'Werkdag — klik om als vrij te markeren',
+    tip: (notation: ReactNode, ex1: ReactNode, ex2: ReactNode) => (
+      <>
+        Tip: klik op een werkdag om hem als vrij te markeren (verlof, ziekte) — hij valt dan weg uit
+        de vereiste uren. Feestdagen (violet) worden automatisch uitgesloten voor het land dat je
+        kiest. Geef uren op als decimaal ({notation}) of als uren-minuten ({ex1} / {ex2}). Het “nog
+        te werken” van elke week neemt elk overschot of tekort van eerdere weken mee.
+      </>
+    ),
+    savedMonths: 'Opgeslagen maanden',
+  },
 }
 
 interface MonthData {
@@ -119,6 +207,8 @@ export function WorkHoursTracker() {
     'work-hours',
     DEFAULTS
   )
+  const t = useT(STR)
+  const { locale } = useLang()
 
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
@@ -134,7 +224,7 @@ export function WorkHoursTracker() {
   const [countries, setCountries] = useState<{ code: string; name: string }[]>([])
   // ISO date → holiday name, for the displayed country + year.
   const [holidays, setHolidays] = useState<Record<string, string>>({})
-  const [holidayError, setHolidayError] = useState<string | null>(null)
+  const [holidayError, setHolidayError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -175,12 +265,12 @@ export function WorkHoursTracker() {
       .then((map) => {
         if (cancelled) return
         setHolidays(map)
-        setHolidayError(null)
+        setHolidayError(false)
       })
       .catch(() => {
         if (cancelled) return
         setHolidays({})
-        setHolidayError('Could not load public holidays.')
+        setHolidayError(true)
       })
     return () => {
       cancelled = true
@@ -258,7 +348,7 @@ export function WorkHoursTracker() {
     return rows
   })()
 
-  const monthLabel = new Date(year, month, 1).toLocaleDateString(undefined, {
+  const monthLabel = new Date(year, month, 1).toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
   })
@@ -282,7 +372,7 @@ export function WorkHoursTracker() {
   }
 
   if (loading) {
-    return <p className="animate-pulse text-slate-400">Loading your settings…</p>
+    return <p className="animate-pulse text-slate-400">{t.loading}</p>
   }
 
   const savedMonths = Object.keys(config.months)
@@ -293,22 +383,19 @@ export function WorkHoursTracker() {
   return (
     <div className="animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Work Hours</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
         <SaveStatus saving={saving} />
       </div>
-      <p className="mt-2 text-slate-400">
-        Log the hours you worked each week and mark the days you took off — see exactly how many
-        hours you still owe for the month.
-      </p>
+      <p className="mt-2 text-slate-400">{t.intro}</p>
 
       {/* ---- Settings (kept across months) ---- */}
       <div className="glass mt-8 rounded-2xl p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-          Settings
+          {t.settings}
         </p>
         <div className="mt-3 flex flex-wrap items-end gap-6">
           <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-            Hours per day
+            {t.hoursPerDay}
             <HoursInput
               value={config.hoursPerDay}
               max={24}
@@ -317,7 +404,7 @@ export function WorkHoursTracker() {
             />
           </label>
           <div className="flex flex-col gap-1.5 text-xs text-slate-400">
-            Work days
+            {t.workDays}
             <div className="flex gap-1.5">
               {WEEKDAY_ORDER.map((wd) => {
                 const on = config.workdays.includes(wd)
@@ -331,21 +418,21 @@ export function WorkHoursTracker() {
                         : 'border border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:bg-white/10'
                     }`}
                   >
-                    {WEEKDAY_LABELS[wd]}
+                    {t.weekdays[wd]}
                   </button>
                 )
               })}
             </div>
           </div>
           <label className="flex flex-col gap-1.5 text-xs text-slate-400">
-            Public holidays
+            {t.publicHolidays}
             <select
               value={config.country}
               onChange={(e) => setConfig({ country: e.target.value })}
               className="glass rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
               <option value="" className="bg-slate-900">
-                None
+                {t.none}
               </option>
               {(countries.length
                 ? countries
@@ -358,7 +445,7 @@ export function WorkHoursTracker() {
             </select>
           </label>
         </div>
-        {holidayError && <p className="mt-2 text-xs text-amber-300">{holidayError}</p>}
+        {holidayError && <p className="mt-2 text-xs text-amber-300">{t.holidayError}</p>}
       </div>
 
       {/* ---- Month navigation ---- */}
@@ -367,7 +454,7 @@ export function WorkHoursTracker() {
           <button
             onClick={() => shiftMonth(-1)}
             className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 hover:border-white/20 hover:bg-white/10"
-            aria-label="Previous month"
+            aria-label={t.prevMonth}
           >
             ←
           </button>
@@ -375,7 +462,7 @@ export function WorkHoursTracker() {
           <button
             onClick={() => shiftMonth(1)}
             className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 hover:border-white/20 hover:bg-white/10"
-            aria-label="Next month"
+            aria-label={t.nextMonth}
           >
             →
           </button>
@@ -384,30 +471,30 @@ export function WorkHoursTracker() {
           onClick={toThisMonth}
           className="rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs text-slate-300 hover:border-white/20 hover:bg-white/10"
         >
-          This month
+          {t.thisMonth}
         </button>
       </div>
 
       {/* ---- Summary ---- */}
       <div className="glass mt-4 rounded-2xl p-5">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat label="Required" value={`${fmtHours(stats.required)} h`} />
-          <Stat label="Worked" value={`${fmtHours(stats.worked)} h`} />
+          <Stat label={t.required} value={`${fmtHours(stats.required)} h`} />
+          <Stat label={t.worked} value={`${fmtHours(stats.worked)} h`} />
           <Stat
-            label={stats.left >= 0 ? 'Still to work' : 'Overtime'}
+            label={stats.left >= 0 ? t.stillToWork : t.overtime}
             value={`${fmtHours(Math.abs(stats.left))} h`}
             accent={stats.left >= 0 ? 'indigo' : 'emerald'}
           />
           <Stat
             label={
               <>
-                Work days
+                {t.workDays}
                 {(stats.off || stats.hol) && (
                   <span className="ml-1 normal-case tracking-normal text-slate-600">
                     (
                     {[
-                      stats.off && `−${stats.off} off`,
-                      stats.hol && `−${stats.hol} holiday${stats.hol === 1 ? '' : 's'}`,
+                      stats.off && t.off(stats.off),
+                      stats.hol && t.holidays(stats.hol),
                     ]
                       .filter(Boolean)
                       .join(' · ')}
@@ -427,17 +514,17 @@ export function WorkHoursTracker() {
         </div>
         <p className="mt-2 text-xs text-slate-500">
           {stats.left > 0
-            ? `${fmtHours(stats.left)} hour${stats.left === 1 ? '' : 's'} left this month.`
+            ? t.hoursLeft(fmtHours(stats.left), stats.left)
             : stats.left === 0
-              ? 'Right on target for this month. 🎉'
-              : `You're ${fmtHours(-stats.left)} hour${stats.left === -1 ? '' : 's'} over. 🎉`}
+              ? t.onTargetMonth
+              : t.over(fmtHours(-stats.left), -stats.left)}
         </p>
       </div>
 
       {/* ---- Weeks ---- */}
       <div className="mt-6 space-y-3">
         {weekStats.map((w) => {
-          const range = `${w.days[0].toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${w.days[6].toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
+          const range = `${w.days[0].toLocaleDateString(locale, { day: 'numeric', month: 'short' })} – ${w.days[6].toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`
           const ahead = w.stillNeeded < 0
           const onTarget = Math.abs(w.stillNeeded) < 0.005
           return (
@@ -451,17 +538,17 @@ export function WorkHoursTracker() {
                     }`}
                   >
                     {onTarget
-                      ? 'On track ✓'
+                      ? t.onTrack
                       : ahead
-                        ? `${fmtHours(-w.stillNeeded)} h ahead`
-                        : `${fmtHours(w.stillNeeded)} h still to work`}
+                        ? t.ahead(fmtHours(-w.stillNeeded))
+                        : t.weekStillToWork(fmtHours(w.stillNeeded))}
                     <span className="ml-1.5 font-normal text-slate-500">
-                      · {fmtHours(w.required)} h target
+                      · {t.target(fmtHours(w.required))}
                     </span>
                   </p>
                 </div>
                 <label className="flex items-center gap-2 text-xs text-slate-400">
-                  Worked
+                  {t.workedField}
                   <HoursInput
                     value={monthData.weekHours[w.mondayKey] ?? 0}
                     onChange={(n) => setWeekHours(w.mondayKey, n)}
@@ -487,11 +574,11 @@ export function WorkHoursTracker() {
                       onClick={() => interactive && toggleOff(d)}
                       title={
                         isHol
-                          ? `${holidayName} — public holiday`
+                          ? t.holidayTitle(holidayName)
                           : interactive
                             ? isOff
-                              ? 'Day off — click to mark as worked'
-                              : 'Work day — click to mark as off'
+                              ? t.dayOffTitle
+                              : t.workDayTitle
                             : undefined
                       }
                       className={`flex flex-col items-center rounded-lg py-1.5 text-xs transition-all duration-200 ${
@@ -507,7 +594,7 @@ export function WorkHoursTracker() {
                       } ${isToday ? 'ring-1 ring-indigo-400/60' : ''}`}
                     >
                       <span className="text-[10px] text-slate-500">
-                        {WEEKDAY_LABELS[d.getDay()]}
+                        {t.weekdays[d.getDay()]}
                       </span>
                       <span className="font-medium">{d.getDate()}</span>
                     </button>
@@ -519,23 +606,23 @@ export function WorkHoursTracker() {
         })}
       </div>
       <p className="mt-3 text-xs text-slate-500">
-        Tip: click a work day to mark it as off (vacation, sick) — it drops out of the required
-        hours. Public holidays (violet) are excluded automatically for the country you pick. Enter
-        hours as a decimal (<span className="font-mono">7.6</span>) or as hours-minutes (
-        <span className="font-mono">45u10</span> / <span className="font-mono">45h10</span>). Each
-        week's “still to work” rolls any surplus or shortfall over from earlier weeks.
+        {t.tip(
+          <span className="font-mono">7.6</span>,
+          <span className="font-mono">45u10</span>,
+          <span className="font-mono">45h10</span>
+        )}
       </p>
 
       {/* ---- Saved months ---- */}
       {savedMonths.length > 0 && (
         <div className="mt-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-            Saved months
+            {t.savedMonths}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {savedMonths.map((k) => {
               const [y, m] = k.split('-').map(Number)
-              const label = new Date(y, m - 1, 1).toLocaleDateString(undefined, {
+              const label = new Date(y, m - 1, 1).toLocaleDateString(locale, {
                 month: 'short',
                 year: 'numeric',
               })

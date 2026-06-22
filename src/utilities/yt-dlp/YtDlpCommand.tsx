@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { SaveStatus } from '../../components/SaveStatus'
 import { useUtilityConfig } from '../../hooks/useUtilityConfig'
+import { useT } from '../../i18n/LanguageContext'
 
 /**
  * yt-dlp command generator.
@@ -100,6 +101,113 @@ const BROWSERS: { id: string; label: string }[] = [
   { id: 'safari', label: 'Safari' },
   { id: 'brave', label: 'Brave' },
 ]
+
+const STR = {
+  en: {
+    loading: 'Loading your settings…',
+    title: 'Video Downloader',
+    introBefore: 'Build a ready-to-run ',
+    introAfter:
+      ' command from your options, then copy it and run it in your terminal. Nothing is downloaded here — the actual fetching happens locally on your machine.',
+    urlLabel: 'Video / playlist URL',
+    urlPlaceholder: 'https://www.youtube.com/watch?v=…',
+    whatToDownload: 'What to download',
+    optVideo: 'Video',
+    optAudioOnly: 'Audio only',
+    maxQuality: 'Max quality',
+    qualityBest: 'Best available',
+    preferMp4: 'Prefer MP4 (most compatible)',
+    audioFormat: 'Audio format',
+    audioBest: 'Best (no convert)',
+    browserNone: 'None',
+    subtitles: 'Subtitles',
+    downloadSubs: 'Download subtitles',
+    autoSubs: 'Include auto-generated subtitles',
+    embedSubs: 'Embed subtitles into the file',
+    subLangsLabel: 'Languages (comma-separated, or “all”)',
+    subLangsPlaceholder: 'en,fr,nl',
+    extras: 'Extras',
+    embedThumbnail: 'Embed thumbnail / cover art',
+    embedMetadata: 'Embed title, artist & metadata',
+    embedChapters: 'Embed chapters',
+    sponsorblock: 'Remove sponsor segments (SponsorBlock)',
+    advanced: 'Advanced',
+    playlists: 'Playlists',
+    playlistSingle: 'Single video only',
+    playlistFull: 'Whole playlist',
+    cookiesLabel: 'Use cookies from browser (for private / age-gated)',
+    outputTemplateLabel: 'Output filename template',
+    speedLimitLabel: 'Speed limit',
+    restrictFilenames: 'Restrict filenames to ASCII (no spaces / special chars)',
+    command: 'Command',
+    copy: 'Copy',
+    copied: 'Copied!',
+    enterUrlHint: 'Enter a URL above to drop it into the command.',
+    firstTime: 'First time?',
+    installBefore: 'Install yt-dlp first — e.g. ',
+    installMacos: ' (macOS), ',
+    installAnyOs: ' (any OS), or grab a binary from the ',
+    releasesPage: 'releases page',
+    installAfter: '. Audio conversion and embedding also need ',
+    installFfmpeg: ' installed. Only download content you have the right to.',
+    supportedSites: 'Supported sites',
+    supportedSitesIntro:
+      'Works with YouTube and over 1,800 other sites — a few popular ones:',
+    fullListLink: 'See the full list of supported sites →',
+  },
+  nl: {
+    loading: 'Je instellingen laden…',
+    title: 'Video-downloader',
+    introBefore: 'Stel een kant-en-klaar ',
+    introAfter:
+      '-commando samen op basis van je opties, kopieer het en voer het uit in je terminal. Hier wordt niets gedownload — het echte ophalen gebeurt lokaal op je eigen machine.',
+    urlLabel: 'Video- / afspeellijst-URL',
+    urlPlaceholder: 'https://www.youtube.com/watch?v=…',
+    whatToDownload: 'Wat downloaden',
+    optVideo: 'Video',
+    optAudioOnly: 'Enkel audio',
+    maxQuality: 'Maximale kwaliteit',
+    qualityBest: 'Best beschikbaar',
+    preferMp4: 'Voorkeur voor MP4 (meest compatibel)',
+    audioFormat: 'Audioformaat',
+    audioBest: 'Beste (geen conversie)',
+    browserNone: 'Geen',
+    subtitles: 'Ondertitels',
+    downloadSubs: 'Ondertitels downloaden',
+    autoSubs: 'Automatisch gegenereerde ondertitels meenemen',
+    embedSubs: 'Ondertitels in het bestand insluiten',
+    subLangsLabel: 'Talen (kommagescheiden, of “all”)',
+    subLangsPlaceholder: 'en,fr,nl',
+    extras: 'Extra’s',
+    embedThumbnail: 'Thumbnail / hoesafbeelding insluiten',
+    embedMetadata: 'Titel, artiest & metadata insluiten',
+    embedChapters: 'Hoofdstukken insluiten',
+    sponsorblock: 'Sponsorfragmenten verwijderen (SponsorBlock)',
+    advanced: 'Geavanceerd',
+    playlists: 'Afspeellijsten',
+    playlistSingle: 'Alleen losse video',
+    playlistFull: 'Volledige afspeellijst',
+    cookiesLabel: 'Cookies uit browser gebruiken (voor privé / leeftijdsgebonden)',
+    outputTemplateLabel: 'Sjabloon voor bestandsnaam',
+    speedLimitLabel: 'Snelheidslimiet',
+    restrictFilenames: 'Bestandsnamen beperken tot ASCII (geen spaties / speciale tekens)',
+    command: 'Commando',
+    copy: 'Kopiëren',
+    copied: 'Gekopieerd!',
+    enterUrlHint: 'Voer hierboven een URL in om die in het commando te plaatsen.',
+    firstTime: 'Eerste keer?',
+    installBefore: 'Installeer eerst yt-dlp — bv. ',
+    installMacos: ' (macOS), ',
+    installAnyOs: ' (elk OS), of pak een binary van de ',
+    releasesPage: 'releases-pagina',
+    installAfter: '. Audioconversie en insluiten vereisen ook ',
+    installFfmpeg: '. Download alleen content waarop je recht hebt.',
+    supportedSites: 'Ondersteunde sites',
+    supportedSitesIntro:
+      'Werkt met YouTube en meer dan 1.800 andere sites — enkele populaire:',
+    fullListLink: 'Bekijk de volledige lijst met ondersteunde sites →',
+  },
+}
 
 /**
  * Wrap a value in single quotes for a POSIX shell, escaping any embedded
@@ -240,12 +348,13 @@ function Pills<T extends string>({
 }
 
 export function YtDlpCommand() {
+  const t = useT(STR)
   const { config, setConfig, loading, saving } = useUtilityConfig('yt-dlp', DEFAULTS)
   const [url, setUrl] = useState('')
   const [copied, setCopied] = useState(false)
 
   if (loading) {
-    return <p className="animate-pulse text-slate-400">Loading your settings…</p>
+    return <p className="animate-pulse text-slate-400">{t.loading}</p>
   }
 
   const o = config
@@ -264,11 +373,11 @@ export function YtDlpCommand() {
   return (
     <div className="animate-fade-up">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Video Downloader</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
         <SaveStatus saving={saving} />
       </div>
       <p className="mt-2 text-slate-400">
-        Build a ready-to-run{' '}
+        {t.introBefore}
         <a
           href="https://github.com/yt-dlp/yt-dlp"
           target="_blank"
@@ -276,28 +385,27 @@ export function YtDlpCommand() {
           className="text-indigo-300 transition-colors hover:text-indigo-200"
         >
           yt-dlp
-        </a>{' '}
-        command from your options, then copy it and run it in your terminal. Nothing is downloaded
-        here — the actual fetching happens locally on your machine.
+        </a>
+        {t.introAfter}
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_minmax(300px,420px)]">
         <div className="min-w-0 space-y-6">
-          <Field label="Video / playlist URL">
+          <Field label={t.urlLabel}>
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=…"
+              placeholder={t.urlPlaceholder}
               className={inputClass}
             />
           </Field>
 
-          <Field group label="What to download">
+          <Field group label={t.whatToDownload}>
             <Pills<Mode>
               options={[
-                { id: 'video', label: 'Video' },
-                { id: 'audio', label: 'Audio only' },
+                { id: 'video', label: t.optVideo },
+                { id: 'audio', label: t.optAudioOnly },
               ]}
               value={o.mode}
               onChange={(v) => setConfig({ mode: v })}
@@ -306,21 +414,25 @@ export function YtDlpCommand() {
 
           {o.mode === 'video' ? (
             <>
-              <Field group label="Max quality">
+              <Field group label={t.maxQuality}>
                 <Pills
-                  options={VIDEO_QUALITIES}
+                  options={VIDEO_QUALITIES.map((q) =>
+                    q.id === 'best' ? { ...q, label: t.qualityBest } : q,
+                  )}
                   value={o.videoQuality}
                   onChange={(v) => setConfig({ videoQuality: v })}
                 />
               </Field>
               <Toggle checked={o.forceMp4} onChange={(v) => setConfig({ forceMp4: v })}>
-                Prefer MP4 (most compatible)
+                {t.preferMp4}
               </Toggle>
             </>
           ) : (
-            <Field group label="Audio format">
+            <Field group label={t.audioFormat}>
               <Pills
-                options={AUDIO_FORMATS}
+                options={AUDIO_FORMATS.map((a) =>
+                  a.id === 'best' ? { ...a, label: t.audioBest } : a,
+                )}
                 value={o.audioFormat}
                 onChange={(v) => setConfig({ audioFormat: v })}
               />
@@ -329,27 +441,27 @@ export function YtDlpCommand() {
 
           <div className="glass rounded-2xl p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Subtitles
+              {t.subtitles}
             </p>
             <div className="mt-4 space-y-3">
               <Toggle checked={o.downloadSubs} onChange={(v) => setConfig({ downloadSubs: v })}>
-                Download subtitles
+                {t.downloadSubs}
               </Toggle>
               <Toggle checked={o.autoSubs} onChange={(v) => setConfig({ autoSubs: v })}>
-                Include auto-generated subtitles
+                {t.autoSubs}
               </Toggle>
               <Toggle
                 checked={o.embedSubs}
                 onChange={(v) => setConfig({ embedSubs: v })}
               >
-                Embed subtitles into the file
+                {t.embedSubs}
               </Toggle>
               {(o.downloadSubs || o.autoSubs) && (
-                <Field label="Languages (comma-separated, or “all”)">
+                <Field label={t.subLangsLabel}>
                   <input
                     value={o.subLangs}
                     onChange={(e) => setConfig({ subLangs: e.target.value })}
-                    placeholder="en,fr,nl"
+                    placeholder={t.subLangsPlaceholder}
                     className={inputClass}
                   />
                 </Field>
@@ -359,60 +471,62 @@ export function YtDlpCommand() {
 
           <div className="glass rounded-2xl p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Extras
+              {t.extras}
             </p>
             <div className="mt-4 space-y-3">
               <Toggle
                 checked={o.embedThumbnail}
                 onChange={(v) => setConfig({ embedThumbnail: v })}
               >
-                Embed thumbnail / cover art
+                {t.embedThumbnail}
               </Toggle>
               <Toggle
                 checked={o.embedMetadata}
                 onChange={(v) => setConfig({ embedMetadata: v })}
               >
-                Embed title, artist & metadata
+                {t.embedMetadata}
               </Toggle>
               <Toggle
                 checked={o.embedChapters}
                 onChange={(v) => setConfig({ embedChapters: v })}
               >
-                Embed chapters
+                {t.embedChapters}
               </Toggle>
               <Toggle
                 checked={o.sponsorblock}
                 onChange={(v) => setConfig({ sponsorblock: v })}
               >
-                Remove sponsor segments (SponsorBlock)
+                {t.sponsorblock}
               </Toggle>
             </div>
           </div>
 
           <div className="glass rounded-2xl p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Advanced
+              {t.advanced}
             </p>
             <div className="mt-4 space-y-4">
-              <Field group label="Playlists">
+              <Field group label={t.playlists}>
                 <Pills
                   options={[
-                    { id: 'single', label: 'Single video only' },
-                    { id: 'full', label: 'Whole playlist' },
+                    { id: 'single', label: t.playlistSingle },
+                    { id: 'full', label: t.playlistFull },
                   ]}
                   value={o.playlist}
                   onChange={(v) => setConfig({ playlist: v })}
                 />
               </Field>
-              <Field group label="Use cookies from browser (for private / age-gated)">
+              <Field group label={t.cookiesLabel}>
                 <Pills
-                  options={BROWSERS}
+                  options={BROWSERS.map((b) =>
+                    b.id === '' ? { ...b, label: t.browserNone } : b,
+                  )}
                   value={o.cookiesBrowser}
                   onChange={(v) => setConfig({ cookiesBrowser: v })}
                 />
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Output filename template">
+                <Field label={t.outputTemplateLabel}>
                   <input
                     value={o.outputTemplate}
                     onChange={(e) => setConfig({ outputTemplate: e.target.value })}
@@ -420,7 +534,7 @@ export function YtDlpCommand() {
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Speed limit">
+                <Field label={t.speedLimitLabel}>
                   <input
                     value={o.rateLimit}
                     onChange={(e) => setConfig({ rateLimit: e.target.value })}
@@ -433,7 +547,7 @@ export function YtDlpCommand() {
                 checked={o.restrictFilenames}
                 onChange={(v) => setConfig({ restrictFilenames: v })}
               >
-                Restrict filenames to ASCII (no spaces / special chars)
+                {t.restrictFilenames}
               </Toggle>
             </div>
           </div>
@@ -443,61 +557,59 @@ export function YtDlpCommand() {
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-                Command
+                {t.command}
               </p>
               <button
                 onClick={copy}
                 className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-3 py-1.5 text-xs font-medium text-white shadow-lg shadow-indigo-500/25 transition-all hover:brightness-110"
               >
-                {copied ? 'Copied!' : 'Copy'}
+                {copied ? t.copied : t.copy}
               </button>
             </div>
             <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-words rounded-xl bg-black/30 p-4 font-mono text-xs leading-relaxed text-emerald-200">
               {command}
             </pre>
             {!url.trim() && (
-              <p className="mt-3 text-xs text-slate-500">
-                Enter a URL above to drop it into the command.
-              </p>
+              <p className="mt-3 text-xs text-slate-500">{t.enterUrlHint}</p>
             )}
           </div>
 
           <div className="glass mt-4 rounded-2xl p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              First time?
+              {t.firstTime}
             </p>
             <p className="mt-3 text-xs leading-relaxed text-slate-400">
-              Install yt-dlp first — e.g.{' '}
+              {t.installBefore}
               <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[11px] text-white">
                 brew install yt-dlp
-              </code>{' '}
-              (macOS),{' '}
+              </code>
+              {t.installMacos}
               <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[11px] text-white">
                 pipx install yt-dlp
-              </code>{' '}
-              (any OS), or grab a binary from the{' '}
+              </code>
+              {t.installAnyOs}
               <a
                 href="https://github.com/yt-dlp/yt-dlp/releases"
                 target="_blank"
                 rel="noreferrer"
                 className="text-indigo-300 transition-colors hover:text-indigo-200"
               >
-                releases page
+                {t.releasesPage}
               </a>
-              . Audio conversion and embedding also need{' '}
+              {t.installAfter}
               <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[11px] text-white">
                 ffmpeg
-              </code>{' '}
-              installed. Only download content you have the right to.
+              </code>
+              {t.installFfmpeg}
             </p>
           </div>
 
           <div className="glass mt-4 rounded-2xl p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Supported sites
+              {t.supportedSites}
             </p>
             <p className="mt-3 text-xs leading-relaxed text-slate-400">
-              Works with YouTube and over 1,800 other sites — a few popular ones:
+              {t.supportedSitesIntro}
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {POPULAR_SITES.map((site) => (
@@ -515,7 +627,7 @@ export function YtDlpCommand() {
               rel="noreferrer"
               className="mt-3 inline-block text-xs text-indigo-300 transition-colors hover:text-indigo-200"
             >
-              See the full list of supported sites →
+              {t.fullListLink}
             </a>
           </div>
         </div>
