@@ -201,6 +201,43 @@ function normalizeUrl(raw: string): string {
   return /^[a-z][a-z0-9+.-]*:/i.test(s) ? s : `https://${s}`
 }
 
+// Reference count so nested modals (e.g. the remove-confirm opened from the
+// edit popup) share a single lock and don't clobber each other's restore.
+let scrollLockCount = 0
+let lockedScrollY = 0
+
+/**
+ * Lock page scroll while a modal is mounted. Pins <body> with position:fixed —
+ * the only reliable way to stop the page (and the popup, which is positioned
+ * relative to it) from drifting on mobile. On unmount the exact scroll position
+ * is restored, so the slot the user tapped lines back up where it was.
+ */
+function useBodyScrollLock() {
+  useEffect(() => {
+    const body = document.body
+    if (scrollLockCount === 0) {
+      lockedScrollY = window.scrollY
+      body.style.position = 'fixed'
+      body.style.top = `-${lockedScrollY}px`
+      body.style.left = '0'
+      body.style.right = '0'
+      body.style.width = '100%'
+    }
+    scrollLockCount++
+    return () => {
+      scrollLockCount--
+      if (scrollLockCount === 0) {
+        body.style.position = ''
+        body.style.top = ''
+        body.style.left = ''
+        body.style.right = ''
+        body.style.width = ''
+        window.scrollTo(0, lockedScrollY)
+      }
+    }
+  }, [])
+}
+
 /**
  * How many times each meal was planned (in any slot) across the WEEKS_LOOKBACK
  * weeks immediately before `weekStart`. Used to bias suggestions toward meals
@@ -640,6 +677,8 @@ function SlotPickerPopup({
   const t = useT(STR)
   const [query, setQuery] = useState('')
 
+  useBodyScrollLock()
+
   // Close on Escape.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -666,7 +705,7 @@ function SlotPickerPopup({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -933,6 +972,7 @@ function MealEditModal({
   onClose: () => void
 }) {
   const t = useT(STR)
+  useBodyScrollLock()
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -943,7 +983,7 @@ function MealEditModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -1017,6 +1057,7 @@ function ConfirmRemoveDialog({
   const t = useT(STR)
   const [dontAsk, setDontAsk] = useState(false)
 
+  useBodyScrollLock()
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel()
