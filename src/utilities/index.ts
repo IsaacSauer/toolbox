@@ -10,6 +10,7 @@ import {
   stockIcon,
   moviesIcon,
   mealPlannerIcon,
+  memeStudioIcon,
 } from './icons'
 
 // Register every utility here. Order determines sidebar order.
@@ -100,6 +101,18 @@ registerUtility({
   availableWithoutAccount: false,
   component: lazy(() =>
     import('./meal-planner/MealPlanner').then((m) => ({ default: m.MealPlanner }))
+  ),
+})
+
+registerUtility({
+  id: 'meme-studio',
+  name: 'Meme Studio',
+  description:
+    'Make memes from trending templates or your own image, GIF or video — add captions, flip and rotate, then download.',
+  icon: memeStudioIcon,
+  availableWithoutAccount: true,
+  component: lazy(() =>
+    import('./meme-studio/MemeStudio').then((m) => ({ default: m.MemeStudio }))
   ),
 })
 

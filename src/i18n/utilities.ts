@@ -93,6 +93,18 @@ const UTILITY_I18N: Record<string, Record<Lang, Localized>> = {
       description: 'Plan een lunch en avondeten voor elke dag van de week uit je eigen maaltijdenlijst.',
     },
   },
+  'meme-studio': {
+    en: {
+      name: 'Meme Studio',
+      description:
+        'Make memes from trending templates or your own image, GIF or video — add captions, flip and rotate, then download.',
+    },
+    nl: {
+      name: 'Meme Studio',
+      description:
+        'Maak memes van populaire templates of je eigen afbeelding, GIF of video — voeg bijschriften toe, spiegel en draai, en download.',
+    },
+  },
   movies: {
     en: {
       name: 'Movies & TV',
