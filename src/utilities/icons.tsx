@@ -20,6 +20,7 @@ import {
   TrendingUp,
   UtensilsCrossed,
   Laugh,
+  Film,
 } from 'lucide-react'
 
 export const textCaseIcon = <CaseSensitive className="size-5" />
@@ -32,3 +33,4 @@ export const moviesIcon = <Clapperboard className="size-5" />
 export const stockIcon = <TrendingUp className="size-5" />
 export const mealPlannerIcon = <UtensilsCrossed className="size-5" />
 export const memeStudioIcon = <Laugh className="size-5" />
+export const videoEditorIcon = <Film className="size-5" />

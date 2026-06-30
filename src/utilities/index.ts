@@ -11,6 +11,7 @@ import {
   moviesIcon,
   mealPlannerIcon,
   memeStudioIcon,
+  videoEditorIcon,
 } from './icons'
 
 // Register every utility here. Order determines sidebar order.
@@ -113,6 +114,18 @@ registerUtility({
   availableWithoutAccount: true,
   component: lazy(() =>
     import('./meme-studio/MemeStudio').then((m) => ({ default: m.MemeStudio }))
+  ),
+})
+
+registerUtility({
+  id: 'video-editor',
+  name: 'Video Editor',
+  description:
+    'Stitch local video files on a timeline, layer text, images and colour cards, mix audio tracks, then export to MP4 — all in your browser.',
+  icon: videoEditorIcon,
+  availableWithoutAccount: true,
+  component: lazy(() =>
+    import('./video-editor/VideoEditor').then((m) => ({ default: m.VideoEditor }))
   ),
 })
 

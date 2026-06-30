@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { useAuth } from './auth/auth-context'
+import { FavoritesProvider } from './favorites/FavoritesProvider'
 import { AuthPage } from './auth/AuthPage'
 import { Layout } from './components/Layout'
 import { SetupScreen } from './components/SetupScreen'
@@ -64,9 +65,11 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <HashRouter>
-          <AppRoutes />
-        </HashRouter>
+        <FavoritesProvider>
+          <HashRouter>
+            <AppRoutes />
+          </HashRouter>
+        </FavoritesProvider>
       </AuthProvider>
     </LanguageProvider>
   )

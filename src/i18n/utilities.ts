@@ -105,6 +105,18 @@ const UTILITY_I18N: Record<string, Record<Lang, Localized>> = {
         'Maak memes van populaire templates of je eigen afbeelding, GIF of video — voeg bijschriften toe, spiegel en draai, en download.',
     },
   },
+  'video-editor': {
+    en: {
+      name: 'Video Editor',
+      description:
+        'Stitch local video files on a timeline, layer text, images and colour cards, mix audio tracks, then export to MP4 — all in your browser.',
+    },
+    nl: {
+      name: 'Video-editor',
+      description:
+        'Voeg lokale videobestanden samen op een tijdlijn, leg tekst, afbeeldingen en kleurkaarten erover, mix audiotracks en exporteer naar MP4 — allemaal in je browser.',
+    },
+  },
   movies: {
     en: {
       name: 'Movies & TV',

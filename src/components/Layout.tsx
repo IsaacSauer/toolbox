@@ -2,16 +2,21 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { PanelLeft } from 'lucide-react'
 import { useAuth } from '../auth/auth-context'
+import { useFavorites } from '../favorites/favorites-context'
 import { getUtilities } from '../utilities/registry'
 import { useLang, useT } from '../i18n/LanguageContext'
 import { localizedUtility } from '../i18n/utilities'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { StarButton } from './StarButton'
 
 const COLLAPSE_KEY = 'sidebar-collapsed'
 
 const STR = {
   en: {
     utilities: 'Utilities',
+    favourites: 'Favourites',
+    addFavourite: 'Add to favourites',
+    removeFavourite: 'Remove from favourites',
     expandSidebar: 'Expand sidebar',
     collapseSidebar: 'Collapse sidebar',
     closeMenu: 'Close menu',
@@ -22,6 +27,9 @@ const STR = {
   },
   nl: {
     utilities: 'Hulpmiddelen',
+    favourites: 'Favorieten',
+    addFavourite: 'Toevoegen aan favorieten',
+    removeFavourite: 'Verwijderen uit favorieten',
     expandSidebar: 'Zijbalk uitklappen',
     collapseSidebar: 'Zijbalk inklappen',
     closeMenu: 'Menu sluiten',
@@ -34,9 +42,12 @@ const STR = {
 
 export function Layout() {
   const { user, signOut } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
   const t = useT(STR)
   const { lang } = useLang()
   const utilities = getUtilities().filter((u) => user || u.availableWithoutAccount)
+  const favourites = utilities.filter((u) => isFavorite(u.id))
+  const nonFavourites = utilities.filter((u) => !isFavorite(u.id))
   const [navOpen, setNavOpen] = useState(false)
   // Desktop-only rail collapse, remembered across sessions.
   const [collapsed, setCollapsed] = useState(
@@ -56,6 +67,34 @@ export function Layout() {
         ? 'bg-indigo-500/15 text-indigo-200 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] ring-1 ring-indigo-400/30'
         : 'text-slate-400 hover:bg-white/5 hover:text-white'
     }`
+
+  const renderItem = (u: (typeof utilities)[number], keyPrefix = '') => {
+    const name = localizedUtility(u.id, lang, u).name
+    const fav = isFavorite(u.id)
+    return (
+      <div key={`${keyPrefix}${u.id}`} className="group/row flex items-center gap-1">
+        <NavLink
+          to={`/tools/${u.id}`}
+          onClick={closeNav}
+          className={(state) => `${linkClass(state)} min-w-0 flex-1`}
+          title={collapsed ? name : undefined}
+        >
+          <span className="transition-transform duration-200 group-hover:scale-110">{u.icon}</span>
+          <span className={`flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{name}</span>
+        </NavLink>
+        {user && (
+          <StarButton
+            active={fav}
+            onClick={() => toggleFavorite(u.id)}
+            title={fav ? t.removeFavourite : t.addFavourite}
+            className={`shrink-0 ${collapsed ? 'lg:hidden' : ''} ${
+              fav ? '' : 'opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100'
+            }`}
+          />
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="ambient flex min-h-dvh bg-surface text-white lg:h-dvh lg:overflow-hidden">
@@ -111,30 +150,32 @@ export function Layout() {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-          <p
-            className={`px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500 ${
-              collapsed ? 'lg:hidden' : ''
-            }`}
-          >
-            {t.utilities}
-          </p>
-          {utilities.map((u) => {
-            const name = localizedUtility(u.id, lang, u).name
-            return (
-              <NavLink
-                key={u.id}
-                to={`/tools/${u.id}`}
-                onClick={closeNav}
-                className={linkClass}
-                title={collapsed ? name : undefined}
+          {/* Pinned favourites, surfaced at the top and omitted from the list
+              below so each tool appears only once. */}
+          {favourites.length > 0 && (
+            <div className="mb-2 space-y-1 border-b border-white/5 pb-2">
+              <p
+                className={`px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500 ${
+                  collapsed ? 'lg:hidden' : ''
+                }`}
               >
-                <span className="transition-transform duration-200 group-hover:scale-110">
-                  {u.icon}
-                </span>
-                <span className={`flex-1 ${collapsed ? 'lg:hidden' : ''}`}>{name}</span>
-              </NavLink>
-            )
-          })}
+                {t.favourites}
+              </p>
+              {favourites.map((u) => renderItem(u, 'fav-'))}
+            </div>
+          )}
+          {nonFavourites.length > 0 && (
+            <>
+              <p
+                className={`px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500 ${
+                  collapsed ? 'lg:hidden' : ''
+                }`}
+              >
+                {t.utilities}
+              </p>
+              {nonFavourites.map((u) => renderItem(u))}
+            </>
+          )}
         </nav>
 
         <div className={`border-t border-white/5 p-4 ${collapsed ? 'lg:px-2' : ''}`}>
