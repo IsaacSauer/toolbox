@@ -66,6 +66,7 @@ const STR = {
       </>
     ),
     savedMonths: 'Saved months',
+    carriedOver: (h: string, monthName: string) => `−${h} h already logged in ${monthName}`,
   },
   nl: {
     // getDay() value → short weekday label
@@ -112,6 +113,7 @@ const STR = {
       </>
     ),
     savedMonths: 'Opgeslagen maanden',
+    carriedOver: (h: string, monthName: string) => `−${h} u al genoteerd in ${monthName}`,
   },
 }
 
@@ -220,6 +222,27 @@ export function WorkHoursTracker() {
 
   const weeks = weeksOfMonth(year, month)
 
+  // When the 1st isn't a Monday, the first week straddles the previous month —
+  // it's the same physical Monday-Sunday week as that month's last week, sharing
+  // one mondayKey. Any hours already logged against the previous month for that
+  // week shouldn't count again here, so we subtract them from this month's first
+  // week's worked total. (The user still types the full week's hours.)
+  const straddles = weeks.length > 0 && new Date(year, month, 1).getDay() !== 1
+  const prevMonthDate = new Date(year, month - 1, 1)
+  const prevKey = monthKey(prevMonthDate.getFullYear(), prevMonthDate.getMonth())
+  const firstWeekCarry = straddles
+    ? (config.months[prevKey]?.weekHours[weeks[0].mondayKey] ?? 0)
+    : 0
+  // Worked hours for week `i`, with the previous-month overlap removed from the
+  // straddling first week. You enter the full week's hours here and the part
+  // already logged against the previous month is subtracted — but only once
+  // you've actually entered something, and never below zero.
+  const effectiveWorked = (i: number, mondayKey: string) => {
+    const raw = monthData.weekHours[mondayKey] ?? 0
+    if (i !== 0 || firstWeekCarry === 0 || raw === 0) return raw
+    return Math.max(0, raw - firstWeekCarry)
+  }
+
   // ---- Public holidays (Nager.Date — free, no key) ----
   const [countries, setCountries] = useState<{ code: string; name: string }[]>([])
   // ISO date → holiday name, for the displayed country + year.
@@ -319,7 +342,7 @@ export function WorkHoursTracker() {
     }
     const effectiveDays = scheduled - off - hol
     const required = effectiveDays * config.hoursPerDay
-    const worked = weeks.reduce((sum, w) => sum + (monthData.weekHours[w.mondayKey] ?? 0), 0)
+    const worked = weeks.reduce((sum, w, i) => sum + effectiveWorked(i, w.mondayKey), 0)
     const left = required - worked
     const pct = required > 0 ? Math.min(100, (worked / required) * 100) : worked > 0 ? 100 : 0
     return { scheduled, off, hol, effectiveDays, required, worked, left, pct }
@@ -332,7 +355,7 @@ export function WorkHoursTracker() {
     const rows: (WeekRow & { required: number; worked: number; stillNeeded: number })[] = []
     let cumRequired = 0
     let cumWorked = 0
-    for (const w of weeks) {
+    weeks.forEach((w, i) => {
       let required = 0
       for (const d of w.days) {
         const inMonth = d.getMonth() === month && d.getFullYear() === year
@@ -340,11 +363,11 @@ export function WorkHoursTracker() {
         if (offSet.has(ymd(d)) || isHoliday(d)) continue
         required += config.hoursPerDay
       }
-      const worked = monthData.weekHours[w.mondayKey] ?? 0
+      const worked = effectiveWorked(i, w.mondayKey)
       cumRequired += required
       cumWorked += worked
       rows.push({ ...w, required, worked, stillNeeded: cumRequired - cumWorked })
-    }
+    })
     return rows
   })()
 
@@ -352,6 +375,7 @@ export function WorkHoursTracker() {
     month: 'long',
     year: 'numeric',
   })
+  const prevMonthLabel = prevMonthDate.toLocaleDateString(locale, { month: 'long' })
 
   function shiftMonth(delta: number) {
     const d = new Date(year, month + delta, 1)
@@ -523,7 +547,7 @@ export function WorkHoursTracker() {
 
       {/* ---- Weeks ---- */}
       <div className="mt-6 space-y-3">
-        {weekStats.map((w) => {
+        {weekStats.map((w, i) => {
           const range = `${w.days[0].toLocaleDateString(locale, { day: 'numeric', month: 'short' })} – ${w.days[6].toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`
           const ahead = w.stillNeeded < 0
           const onTarget = Math.abs(w.stillNeeded) < 0.005
@@ -547,16 +571,23 @@ export function WorkHoursTracker() {
                     </span>
                   </p>
                 </div>
-                <label className="flex items-center gap-2 text-xs text-slate-400">
-                  {t.workedField}
-                  <HoursInput
-                    value={monthData.weekHours[w.mondayKey] ?? 0}
-                    onChange={(n) => setWeekHours(w.mondayKey, n)}
-                    placeholder="0"
-                    className="glass w-24 rounded-xl px-3 py-1.5 text-right text-sm text-white placeholder-slate-600 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                  <span className="text-slate-500">h</span>
-                </label>
+                <div className="flex flex-col items-end gap-1">
+                  <label className="flex items-center gap-2 text-xs text-slate-400">
+                    {t.workedField}
+                    <HoursInput
+                      value={monthData.weekHours[w.mondayKey] ?? 0}
+                      onChange={(n) => setWeekHours(w.mondayKey, n)}
+                      placeholder="0"
+                      className="glass w-24 rounded-xl px-3 py-1.5 text-right text-sm text-white placeholder-slate-600 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                    <span className="text-slate-500">h</span>
+                  </label>
+                  {i === 0 && firstWeekCarry > 0 && (
+                    <span className="text-[11px] text-slate-500">
+                      {t.carriedOver(fmtHours(firstWeekCarry), prevMonthLabel)}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="mt-3 grid grid-cols-7 gap-1.5">
                 {w.days.map((d) => {
