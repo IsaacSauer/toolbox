@@ -12,10 +12,12 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
     "lucide-react": "^1.21.0",
+    "mp4-muxer": "^5.2.2",
     "qr-code-styling": "^1.9.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-router-dom": "^7.17.0"
+    "react-router-dom": "^7.17.0",
+    "webm-muxer": "^5.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

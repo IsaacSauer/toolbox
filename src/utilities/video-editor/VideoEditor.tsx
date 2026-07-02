@@ -27,6 +27,7 @@ import {
   triggerDownload,
   type ClipFormat,
 } from './export'
+import { exportTimelineFast, FastExportUnsupportedError } from './export-fast'
 import {
   DEFAULT_HEIGHT,
   DEFAULT_WIDTH,
@@ -700,15 +701,28 @@ export function VideoEditor() {
     setExportError(false)
     const controller = new AbortController()
     abortRef.current = controller
+    const exportOpts = {
+      format,
+      width: project.w,
+      height: project.h,
+      fit: project.fit,
+      onProgress: setProgress,
+      signal: controller.signal,
+    }
     try {
-      const { blob, ext } = await exportTimeline(clips, overlays, audioTracks, {
-        format,
-        width: project.w,
-        height: project.h,
-        fit: project.fit,
-        onProgress: setProgress,
-        signal: controller.signal,
-      })
+      // Prefer the fast WebCodecs encoder; fall back to realtime recording when
+      // the browser can't run it.
+      let result: { blob: Blob; ext: string }
+      try {
+        result = await exportTimelineFast(clips, overlays, audioTracks, exportOpts)
+      } catch (err) {
+        if (err instanceof FastExportUnsupportedError) {
+          result = await exportTimeline(clips, overlays, audioTracks, exportOpts)
+        } else {
+          throw err
+        }
+      }
+      const { blob, ext } = result
       triggerDownload(blob, `video-${Date.now()}.${ext}`)
     } catch (err) {
       if (!(err instanceof DOMException && err.name === 'AbortError')) setExportError(true)

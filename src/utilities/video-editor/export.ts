@@ -1,8 +1,10 @@
 /**
- * Realtime exporter. There is no offline/WASM encoder here (no external libs),
- * so we render the timeline in real time to an offscreen canvas, mix all audio
- * through a Web Audio graph, capture both as a MediaStream and record it with
- * MediaRecorder. A 1-minute timeline therefore takes ~1 minute to export.
+ * Realtime exporter — the fallback path. `export-fast.ts` has a much faster
+ * offline encoder (WebCodecs) that is tried first; this module runs only when
+ * the browser lacks WebCodecs or a usable codec. Here we render the timeline in
+ * real time to an offscreen canvas, mix all audio through a Web Audio graph,
+ * capture both as a MediaStream and record it with MediaRecorder. A 1-minute
+ * timeline therefore takes ~1 minute to export.
  *
  * Audio mixing: every clip and every extra audio track gets its own offscreen
  * media element routed through a GainNode into one MediaStreamDestination. The
@@ -66,7 +68,7 @@ export function triggerDownload(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-function loadVideo(url: string, container: HTMLElement): Promise<HTMLVideoElement> {
+export function loadVideo(url: string, container: HTMLElement): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
     const el = document.createElement('video')
     el.src = url
@@ -95,7 +97,7 @@ function loadAudio(url: string, container: HTMLElement): Promise<HTMLAudioElemen
   })
 }
 
-function loadImage(url: string): Promise<HTMLImageElement> {
+export function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
